@@ -1,0 +1,3337 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เที่ยวด้วยกัน</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F8C8DC">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="เที่ยวด้วยกัน">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- ══ Supabase Config ══ -->
+  <script>
+  // 🔑 ไปที่ https://supabase.com → Project → Settings → API → Project URL + anon public key
+  const SUPABASE_URL = 'https://yylsirfjynphtxukexpg.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_qVr9HLjC15PzOqfKoTD9nA_cZmBYj9J';
+  </script>
+  <script>
+  // ══ Supabase SDK (dynamic import with 4s timeout) ══
+  window.__sup = null;
+  (async () => {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) { window.__supReady = true; return; }
+    try {
+      const result = await Promise.race([
+        import('https://esm.sh/@supabase/supabase-js@2.45.0'),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+      ]);
+      const { createClient } = result;
+      window.__sup = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { storageKey: 'travelBuddyAuth', autoRefreshToken: true, persistSession: true }
+      });
+    } catch (e) { console.warn('Supabase SDK failed, using localStorage'); }
+    window.__supReady = true;
+  })();
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --pink: #F8C8DC; --pink-h: #f5b8cf;
+      --pink-deep: #e8749a;
+      --lavender: #D8C8F0; --lavender-h: #cbb8e8;
+      --mint: #B8E8D8; --mint-h: #a8e0ce;
+      --peach: #FDDCB5; --peach-h: #fcd4a5;
+      --sky: #B8D8F0; --sky-h: #a8d0e8;
+      --yellow: #FFF2CC; --yellow-h: #ffeeb8;
+      --bg: #F7F3F0; --surface: #FFFFFF;
+      --text: #2D2D2D; --text-light: #7A7A7A; --text-dim: #B0B0B0;
+      --line: #E8E0DC; --line-light: #F0EAE6;
+      --radius: 16px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
+      --font: 'Sarabun', sans-serif;
+    }
+    html { font-size: 16px; }
+    @media (max-width: 480px) { html { font-size: 15px; } }
+    @media (min-width: 481px) and (max-width: 768px) { html { font-size: 15.5px; } }
+    body {
+      font-family: var(--font); background: var(--bg); color: var(--text);
+      min-height: 100vh; -webkit-font-smoothing: antialiased;
+    }
+    input, select, textarea, button { font-family: var(--font); }
+    ::selection { background: var(--pink); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .hidden { display: none !important; }
+
+    /* ══ PAGE LAYOUT ══ */
+    .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ══ TOP NAVBAR ══ */
+    .topnav {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(232,224,220,0.6);
+      padding: 0 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .topnav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; cursor: pointer;
+    }
+    .topnav-logo .logo-badge {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #e8749a, #9b72cf);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18px;
+    }
+    .topnav-logo h1 {
+      font-size: 1.2rem; font-weight: 700; color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .topnav-logo h1 span { color: var(--pink-deep); }
+    .topnav-actions { display: flex; align-items: center; gap: 10px; }
+    .topnav-actions .hero-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 18px;
+      background: linear-gradient(135deg, #e8749a, #c45c85);
+      color: #fff; border: none; border-radius: 10px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .topnav-actions .hero-btn:hover { opacity: 0.9; }
+    .topnav-actions .hero-btn .material-icons-outlined { font-size: 18px; }
+
+    /* ══ HOMEPAGE ══ */
+    .homepage { flex: 1; display: flex; flex-direction: column; }
+    .homepage.hidden { display: none; }
+
+    /* ── Trips Section ── */
+    .trips-section {
+      padding: 48px 40px 80px;
+      max-width: 1280px; margin: 0 auto; width: 100%;
+    }
+    .trips-section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .trips-section-header h3 {
+      font-size: 1.6rem; font-weight: 700; color: var(--text);
+    }
+    .trips-section-header h3 span {
+      font-size: 1rem; font-weight: 400; color: var(--text-light);
+      margin-left: 8px;
+    }
+
+    /* ── Trip Cards Grid ── */
+    .trip-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .trip-card {
+      background: var(--surface);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(165,140,130,0.08);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s;
+      cursor: pointer;
+      border: 1px solid rgba(232,224,220,0.8);
+      animation: fadeIn 0.4s ease both;
+      display: flex;
+      flex-direction: column;
+    }
+    .trip-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(165,140,130,0.18);
+      border-color: var(--pink-deep);
+    }
+    .trip-card-cover {
+      height: 110px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px;
+      position: relative; overflow: hidden;
+    }
+    .trip-card-cover-emoji {
+      z-index: 2; position: relative;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .trip-card:hover .trip-card-cover-emoji { transform: scale(1.12) rotate(-4deg); }
+    .trip-card-cover-blur {
+      position: absolute; inset: 0; opacity: 0.15;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 100px; filter: blur(20px); pointer-events: none;
+      z-index: 1;
+    }
+    .trip-card-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+    .trip-card-name {
+      font-size: 1rem; font-weight: 700; color: var(--text);
+      margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;
+      gap: 6px; line-height: 1.3;
+    }
+    .trip-card-meta {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;
+      font-size: 0.72rem; color: var(--text-light);
+    }
+    .trip-card-meta span {
+      display: flex; align-items: center; gap: 4px;
+      background: var(--bg);
+      padding: 4px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+      border: 1px solid var(--line-light);
+    }
+    .trip-card-meta .material-icons-outlined { font-size: 13px; color: var(--pink-deep); }
+    .trip-card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 10px; border-top: 1px solid var(--line-light);
+      margin-top: auto;
+    }
+    .trip-card-enter {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 0.8rem; font-weight: 700; color: var(--pink-deep);
+      transition: gap 0.2s;
+    }
+    .trip-card:hover .trip-card-enter {
+      gap: 8px;
+    }
+    .trip-card-enter .material-icons-outlined { font-size: 14px; }
+    .trip-card-del {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-dim); font-size: 18px; border-radius: 8px;
+      padding: 6px; transition: all 0.2s;
+      display: flex; align-items: center;
+    }
+    .trip-card-del:hover { color: #e74c3c; background: rgba(231,76,60,0.1); }
+    .pin-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 0.65rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--lavender), var(--sky));
+      color: #6a4fa0; padding: 3px 10px; border-radius: 20px;
+      vertical-align: middle;
+      box-shadow: 0 2px 6px rgba(106, 79, 160, 0.15);
+    }
+    .pin-badge .material-icons-outlined { font-size: 11px; }
+
+    /* Empty trips state */
+    .empty-trips {
+      text-align: center; padding: 80px 24px; color: var(--text-dim);
+      grid-column: 1/-1;
+    }
+    .empty-trips .et-icon { font-size: 72px; margin-bottom: 16px; opacity: 0.5; }
+    .empty-trips h4 { font-size: 1.2rem; color: var(--text-light); margin-bottom: 8px; font-weight: 500; }
+    .empty-trips p { font-size: 0.9rem; }
+
+    /* ══ TRIP DETAIL PAGE ══ */
+    .trip-detail { display: none; flex: 1; flex-direction: column; }
+    .trip-detail.active { display: flex; }
+
+    /* Detail Header */
+    .detail-header {
+      padding: 0 40px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line-light);
+      display: flex; align-items: center; justify-content: space-between;
+      min-height: 56px; flex-wrap: wrap; gap: 8px;
+    }
+    .detail-header-left {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 4px;
+      background: none; border: none; cursor: pointer;
+      font-size: 0.9rem; color: var(--text-light);
+      padding: 8px 0; transition: color 0.2s;
+    }
+    .back-btn:hover { color: var(--pink-deep); }
+    .back-btn .material-icons-outlined { font-size: 20px; }
+    .detail-title {
+      font-size: 1rem; font-weight: 600; color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .detail-header .actions { display: flex; gap: 8px; align-items: center; }
+
+    /* Detail Tabs */
+    .tabs {
+      display: flex; gap: 4px; padding: 0 40px; background: var(--surface);
+      border-bottom: 1px solid var(--line-light); overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tabs::-webkit-scrollbar { height: 0; }
+    .tab {
+      padding: 14px 18px; font-size: 0.85rem; font-weight: 500; color: var(--text-light);
+      cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+      white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--pink-deep); border-bottom-color: var(--pink-deep); }
+
+    .tab-content { display: none; padding-top: 20px; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s; }
+
+    /* Detail content */
+    .detail-content {
+      flex: 1; padding: 28px 40px 60px; max-width: 1100px; width: 100%;
+    }
+
+    /* ══ CARDS ══ */
+    .card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+      transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: var(--shadow); }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px;
+    }
+    .card-header h3 { font-size: 1rem; font-weight: 600; }
+    .card-header .badge {
+      font-size: 0.7rem; padding: 2px 10px; border-radius: 20px;
+      background: var(--line-light); color: var(--text-light); font-weight: 500;
+    }
+
+    /* ── Summary ── */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .summary-card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 20px; text-align: center;
+    }
+    .summary-card .num {
+      font-size: 1.6rem; font-weight: 700; line-height: 1.3;
+    }
+    .summary-card .label {
+      font-size: 0.8rem; color: var(--text-light); margin-top: 2px;
+    }
+    .summary-card.pink .num { color: #d63384; }
+    .summary-card.lavender .num { color: #7b5ea7; }
+    .summary-card.mint .num { color: #2d8a6e; }
+    .summary-card.sky .num { color: #4a7fa7; }
+
+    /* ── Members ── */
+    .member-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .member-chip {
+      display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+      border-radius: 20px; background: var(--line-light); font-size: 0.85rem;
+      font-weight: 500; cursor: pointer; transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .member-chip:hover { border-color: var(--line); }
+    .member-chip .del {
+      font-size: 14px; cursor: pointer; opacity: 0.4; transition: opacity 0.2s;
+      background: none; border: none; color: inherit; padding: 0; line-height: 1;
+    }
+    .member-chip .del:hover { opacity: 1; color: #e74c3c; }
+    .member-chip.has-account { background: var(--yellow); }
+    .member-chip .acc-info {
+      font-size: 0.7rem; color: var(--text-light); font-weight: 400;
+      margin-left: 2px;
+    }
+    .member-avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 50%; font-size: 15px;
+      flex-shrink: 0; line-height: 1;
+    }
+    .member-avatar-sm {
+      width: 24px; height: 24px; font-size: 12px;
+    }
+    .member-avatar-lg {
+      width: 42px; height: 42px; font-size: 22px;
+    }
+    .avatar-grid {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+    }
+    .avatar-grid .av-opt {
+      width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+      cursor: pointer; transition: all 0.15s; background: var(--line-light);
+    }
+    .avatar-grid .av-opt:hover { border-color: var(--text-dim); }
+    .avatar-grid .av-opt.active { border-color: var(--text); background: var(--surface); }
+    .color-grid {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+    }
+    .color-grid .clr-opt {
+      width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .color-grid .clr-opt:hover { border-color: var(--text-dim); }
+    .color-grid .clr-opt.active { border-color: var(--text); }
+
+    /* ── Search suggestions ── */
+    .search-wrap { position: relative; }
+    .search-results {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+      margin-top: 4px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    .search-results .sr-item {
+      padding: 10px 14px; cursor: pointer; font-size: 0.85rem;
+      border-bottom: 1px solid var(--line-light); transition: background 0.15s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .search-results .sr-item:last-child { border-bottom: none; }
+    .search-results .sr-item:hover { background: var(--line-light); }
+    .search-results .sr-item .sr-name { font-weight: 500; }
+    .search-results .sr-item .sr-addr { font-size: 0.75rem; color: var(--text-light); }
+    .search-status {
+      font-size: 0.75rem; color: var(--text-light); margin-top: 4px; min-height: 1.2em;
+    }
+
+    /* ── Expenses ── */
+    .expense-item {
+      display: flex; align-items: center; gap: 14px; padding: 12px 0;
+      border-bottom: 1px solid var(--line-light);
+    }
+    .expense-item:last-child { border-bottom: none; }
+    .expense-item .cat-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .expense-item .exp-info { flex: 1; min-width: 0; }
+    .expense-item .exp-desc { font-weight: 500; font-size: 0.9rem; }
+    .expense-item .exp-detail { font-size: 0.75rem; color: var(--text-light); }
+    .expense-item .exp-amount { font-weight: 600; font-size: 1.05rem; text-align: right; }
+    .expense-item .exp-del {
+      background: none; border: none; cursor: pointer; color: var(--text-dim);
+      font-size: 18px; padding: 4px; border-radius: 6px; opacity: 0; transition: all 0.2s;
+    }
+    .expense-item:hover .exp-del { opacity: 0.5; }
+    .expense-item .exp-del:hover { opacity: 1; color: #e74c3c; background: rgba(231,76,60,0.1); }
+
+    /* ── Settlement ── */
+    .settle-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    @media (max-width: 640px) { .settle-grid { grid-template-columns: 1fr; } }
+
+    .settle-member {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      border-radius: 12px; border: 1px solid var(--line); margin-bottom: 8px;
+    }
+    .settle-member.positive { border-color: var(--mint); background: rgba(184,232,216,0.15); }
+    .settle-member.negative { border-color: var(--peach); background: rgba(253,220,181,0.15); }
+    .settle-member .bal { margin-left: auto; font-weight: 600; font-size: 1rem; }
+    .settle-member .bal.pos { color: #2d8a6e; }
+    .settle-member .bal.neg { color: #d68a4a; }
+
+    .settle-transfer {
+      padding: 14px 18px; border-radius: 12px; background: var(--line-light);
+      display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+    }
+    .settle-transfer .arrow { color: var(--text-light); }
+    .settle-transfer .amount { font-weight: 600; font-size: 1rem; margin-left: auto; }
+
+    /* ── Destinations ── */
+    #map {
+      height: 320px; border-radius: var(--radius); border: 1px solid var(--line);
+      margin-bottom: 16px;
+    }
+    .dest-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .dest-item:hover { border-color: var(--lavender); }
+    .dest-item .dest-icon {
+      width: 36px; height: 36px; border-radius: 10px; background: var(--line-light);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      flex-shrink: 0;
+    }
+    .dest-item .dest-info { flex: 1; }
+    .dest-item .dest-name { font-weight: 500; font-size: 0.9rem; }
+    .dest-item .dest-meta { font-size: 0.75rem; color: var(--text-light); }
+    .dest-item .dest-del {
+      background: none; border: none; cursor: pointer; color: var(--text-dim);
+      font-size: 18px; opacity: 0; transition: all 0.2s; padding: 4px;
+    }
+    .dest-item:hover .dest-del { opacity: 0.5; }
+    .dest-item .dest-del:hover { opacity: 1; color: #e74c3c; }
+
+    /* ── Packing ── */
+    .pack-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid var(--line-light);
+    }
+    .pack-item:last-child { border-bottom: none; }
+    .pack-item label {
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+      flex: 1; font-size: 0.9rem;
+    }
+    .pack-item input[type="checkbox"] {
+      width: 18px; height: 18px; accent-color: var(--pink-deep); cursor: pointer;
+      border-radius: 4px;
+    }
+    .pack-item .pack-del {
+      background: none; border: none; color: var(--text-dim); cursor: pointer;
+      font-size: 18px; opacity: 0; transition: all 0.2s;
+    }
+    .pack-item:hover .pack-del { opacity: 0.5; }
+    .pack-item .pack-del:hover { opacity: 1; color: #e74c3c; }
+    .pack-item.checked label { text-decoration: line-through; color: var(--text-dim); }
+
+    /* ── Itinerary ── */
+    .itin-day {
+      margin-bottom: 20px;
+    }
+    .itin-day h4 {
+      font-size: 0.9rem; color: var(--text-light); margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .itin-item {
+      display: flex; gap: 12px; padding: 10px 14px;
+      border-left: 2px solid var(--line); margin-left: 8px; padding-left: 16px;
+      position: relative;
+    }
+    .itin-item::before {
+      content: ''; position: absolute; left: -5px; top: 16px;
+      width: 8px; height: 8px; border-radius: 50%; background: var(--lavender);
+    }
+    .itin-item .itin-time {
+      font-size: 0.8rem; color: var(--text-light); font-weight: 500;
+      white-space: nowrap; min-width: 50px;
+    }
+    .itin-item .itin-info { flex: 1; }
+    .itin-item .itin-activity { font-weight: 500; font-size: 0.9rem; }
+    .itin-item .itin-loc { font-size: 0.75rem; color: var(--text-light); }
+    .itin-item .itin-del {
+      background: none; border: none; color: var(--text-dim); cursor: pointer;
+      font-size: 16px; opacity: 0; transition: all 0.2s;
+    }
+    .itin-item:hover .itin-del { opacity: 0.5; }
+    .itin-item .itin-del:hover { opacity: 1; color: #e74c3c; }
+
+    /* ── Notes ── */
+    .note-card {
+      background: #FFF9C4; border: none;
+      border-radius: 4px; padding: 18px 20px 14px; margin-bottom: 14px;
+      position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      transform: rotate(-0.3deg); transition: transform 0.2s, box-shadow 0.2s;
+      font-family: 'Sarabun', 'Caveat', cursive;
+    }
+    .note-card:nth-child(even) { transform: rotate(0.5deg); background: #FFF3B0; }
+    .note-card:nth-child(3n) { transform: rotate(-0.8deg); background: #FFF9C4; }
+    .note-card:nth-child(5n) { transform: rotate(0.2deg); background: #FFF0A0; }
+    .note-card:hover { transform: rotate(0deg) scale(1.01); box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1; }
+    .note-card .note-text {
+      font-size: 0.92rem; line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+      color: #5D4E37;
+    }
+    .note-card .note-meta {
+      font-size: 0.65rem; color: #B8A070; margin-top: 10px;
+      display: flex; align-items: center; gap: 6px;
+      border-top: 1px dashed rgba(184,160,112,0.3); padding-top: 8px;
+    }
+    .note-card .note-del {
+      position: absolute; top: 6px; right: 8px;
+      background: none; border: none; color: #D4C090; cursor: pointer;
+      font-size: 16px; opacity: 0; transition: all 0.2s; padding: 2px; border-radius: 4px;
+      line-height: 1;
+    }
+    .note-card:hover .note-del { opacity: 0.6; }
+    .note-card .note-del:hover { opacity: 1; color: #e74c3c; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 8px 18px; border-radius: 10px; border: 1px solid var(--line);
+      background: var(--surface); cursor: pointer; font-size: 0.85rem;
+      font-weight: 500; transition: all 0.2s; display: inline-flex;
+      align-items: center; gap: 6px;
+    }
+    .btn:hover { border-color: var(--text-dim); }
+    .btn-primary {
+      background: linear-gradient(135deg, #e8749a, #c45c85);
+      border-color: transparent; color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-sm { padding: 6px 14px; font-size: 0.8rem; border-radius: 8px; }
+    .btn-ghost { border-color: transparent; background: var(--line-light); }
+    .btn-ghost:hover { border-color: var(--line); background: var(--line); }
+    .btn-danger { border-color: transparent; color: #e74c3c; }
+    .btn-danger:hover { background: rgba(231,76,60,0.08); }
+
+    .btn-icon {
+      width: 36px; height: 36px; padding: 0; display: flex; align-items: center;
+      justify-content: center; border-radius: 10px;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+      z-index: 2000; align-items: flex-start; justify-content: center;
+      padding: 40px 16px; overflow-y: auto;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: 20px; padding: 28px;
+      width: 100%; max-width: 480px; margin-top: 40px;
+      animation: fadeIn 0.25s;
+    }
+    .modal h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; }
+    .modal .form-group { margin-bottom: 16px; }
+    .modal .form-group label {
+      display: block; font-size: 0.8rem; font-weight: 500;
+      color: var(--text-light); margin-bottom: 4px;
+    }
+    .modal .form-group input,
+    .modal .form-group select,
+    .modal .form-group textarea {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--line);
+      border-radius: 10px; font-size: 0.9rem; background: var(--surface);
+      transition: border-color 0.2s;
+    }
+    .modal .form-group input:focus,
+    .modal .form-group select:focus,
+    .modal .form-group textarea:focus { outline: none; border-color: var(--pink-deep); }
+    .modal .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal .form-actions {
+      display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px;
+    }
+
+    /* ── Split UI ── */
+    .split-toggle {
+      display: flex; gap: 8px; margin-bottom: 12px;
+    }
+    .split-toggle .btn {
+      flex: 1; justify-content: center;
+    }
+    .split-toggle .btn.active {
+      background: var(--lavender); border-color: var(--lavender); color: #fff;
+    }
+    .custom-split { display: none; }
+    .custom-split.open { display: block; }
+    .custom-split-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    }
+    .custom-split-row label { flex: 1; font-size: 0.85rem; }
+    .custom-split-row input {
+      width: 100px !important; text-align: right;
+    }
+
+    /* ── Toast ── */
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 3000;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px; border-radius: 12px; background: #2D2D2D;
+      color: #fff; font-size: 0.85rem; animation: fadeIn 0.3s;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    /* ── Category colors ── */
+    .cat-food { background: var(--peach); }
+    .cat-transport { background: var(--sky); }
+    .cat-accommodation { background: var(--lavender); }
+    .cat-activity { background: var(--mint); }
+    .cat-shopping { background: var(--pink); }
+    .cat-other { background: var(--line-light); }
+
+    /* ── Empty state ── */
+    .empty-state-text {
+      text-align: center; padding: 32px 16px; color: var(--text-dim);
+    }
+    .empty-state-text .icon { font-size: 36px; margin-bottom: 8px; display: block; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .topnav { padding: 0 20px; }
+      .trips-section { padding: 32px 20px 60px; }
+      .trip-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+      .detail-header { padding: 0 20px; }
+      .tabs { padding: 0 20px; }
+      .detail-content { padding: 20px 20px 50px; }
+      .modal { margin-top: 16px; padding: 24px; }
+      .modal .form-row { grid-template-columns: 1fr; }
+      .btn { font-size: 0.9rem; }
+    }
+    @media (max-width: 480px) {
+      .topnav { padding: 0 16px; height: 56px; }
+      .trips-section { padding: 24px 16px 48px; }
+      .trip-grid { grid-template-columns: 1fr; }
+      .detail-header { padding: 0 16px; flex-wrap: wrap; }
+      .tabs { padding: 0 8px; gap: 2px; }
+      .tabs .tab { font-size: 0.82rem; padding: 10px 12px; }
+      .detail-content { padding: 16px 16px 48px; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 280px; background: var(--surface); border-right: 1px solid var(--line);
+      display: flex; flex-direction: column; position: fixed; top: 0; left: 0;
+      height: 100vh; z-index: 100; transition: transform 0.3s;
+    }
+    .sidebar-header {
+      padding: 24px 20px 16px; border-bottom: 1px solid var(--line-light);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sidebar-header .logo-icon {
+      width: 36px; height: 36px; background: linear-gradient(135deg,var(--pink),var(--lavender));
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: #fff;
+    }
+      .sidebar-header h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: 0.3px; }
+    .sidebar-header h1 span { color: var(--text-light); font-weight: 300; }
+
+    .trip-list { flex: 1; overflow-y: auto; padding: 12px 12px; }
+    .trip-list::-webkit-scrollbar { width: 4px; }
+    .trip-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+    .trip-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border-radius: 12px; cursor: pointer; transition: all 0.2s;
+      margin-bottom: 4px; border: 1px solid transparent;
+    }
+    .trip-item:hover { background: var(--line-light); }
+    .trip-item.active {
+      background: var(--pink); border-color: var(--pink); color: #fff;
+    }
+    .trip-item .trip-icon {
+      width: 32px; height: 32px; border-radius: 10px; display: flex;
+      align-items: center; justify-content: center; font-size: 18px;
+      background: var(--line-light); flex-shrink: 0;
+    }
+    .trip-item.active .trip-icon { background: rgba(255,255,255,0.3); }
+    .trip-item .trip-info { flex: 1; min-width: 0; }
+    .trip-item .trip-name { font-size: 0.9rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trip-item .trip-meta { font-size: 0.75rem; color: var(--text-light); }
+    .trip-item.active .trip-meta { color: rgba(255,255,255,0.8); }
+    .trip-item .trip-del {
+      opacity: 0; background: none; border: none; cursor: pointer; color: var(--text-dim);
+      font-size: 18px; padding: 2px; border-radius: 6px; line-height: 1; transition: all 0.2s;
+    }
+    .trip-item:hover .trip-del { opacity: 0.5; }
+    .trip-item .trip-del:hover { opacity: 1; color: #e74c3c; background: rgba(231,76,60,0.1); }
+    .trip-item.active .trip-del { color: rgba(255,255,255,0.6); }
+    .trip-item.active .trip-del:hover { color: #fff; background: rgba(255,255,255,0.2); }
+
+    .sidebar-footer {
+      padding: 16px 20px; border-top: 1px solid var(--line-light);
+    }
+    .btn-new-trip {
+      width: 100%; padding: 12px; border: 2px dashed var(--line);
+      border-radius: 12px; background: none; cursor: pointer;
+      font-size: 0.9rem; color: var(--text-light); font-weight: 500;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-new-trip:hover {
+      border-color: var(--pink); color: var(--text); background: rgba(248,200,220,0.1);
+    }
+
+    /* ── Sidebar overlay (mobile) ── */
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.2);
+      z-index: 99;
+    }
+
+    /* ── Main ── */
+    .main {
+      flex: 1; margin-left: 280px; min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+    .main-header {
+      padding: 20px 32px 16px; border-bottom: 1px solid var(--line-light);
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface); position: sticky; top: 0; z-index: 50;
+    }
+    .main-header .left { display: flex; align-items: center; gap: 12px; }
+    .btn-menu {
+      display: none; background: none; border: none; font-size: 24px;
+      cursor: pointer; color: var(--text); padding: 4px;
+    }
+    .main-header h2 { font-size: 1.3rem; font-weight: 600; }
+    .main-header h2 small { font-size: 0.75rem; font-weight: 400; color: var(--text-light); display: block; }
+    .main-header .actions { display: flex; gap: 8px; }
+
+    .main-content {
+      flex: 1; padding: 24px 32px 40px; max-width: 1000px;
+    }
+    .main-content.empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center; color: var(--text-dim);
+      gap: 16px;
+    }
+    .main-content.empty-state .big-icon {
+      font-size: 64px; width: 100px; height: 100px; border-radius: 24px;
+      background: var(--line-light); display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 4px; padding: 0 32px; background: var(--surface);
+      border-bottom: 1px solid var(--line-light); overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tabs::-webkit-scrollbar { height: 0; }
+    .tab {
+      padding: 12px 18px; font-size: 0.85rem; font-weight: 500; color: var(--text-light);
+      cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+      white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: var(--pink); }
+
+    .tab-content { display: none; padding-top: 20px; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+      transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: var(--shadow); }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px;
+    }
+    .card-header h3 { font-size: 1rem; font-weight: 600; }
+    .card-header .badge {
+      font-size: 0.7rem; padding: 2px 10px; border-radius: 20px;
+      background: var(--line-light); color: var(--text-light); font-weight: 500;
+    }
+
+    /* ── Summary ── */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .summary-card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 20px; text-align: center;
+    }
+    .summary-card .num {
+      font-size: 1.6rem; font-weight: 700; line-height: 1.3;
+    }
+    .summary-card .label {
+      font-size: 0.8rem; color: var(--text-light); margin-top: 2px;
+    }
+    .summary-card.pink .num { color: #d63384; }
+    .summary-card.lavender .num { color: #7b5ea7; }
+    .summary-card.mint .num { color: #2d8a6e; }
+    .summary-card.sky .num { color: #4a7fa7; }
+
+    /* ── Members ── */
+    .member-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .member-chip {
+      display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+      border-radius: 20px; background: var(--line-light); font-size: 0.85rem;
+      font-weight: 500; cursor: pointer; transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .member-chip:hover { border-color: var(--line); }
+    .member-chip .del {
+      font-size: 14px; cursor: pointer; opacity: 0.4; transition: opacity 0.2s;
+      background: none; border: none; color: inherit; padding: 0; line-height: 1;
+    }
+    .member-chip .del:hover { opacity: 1; color: #e74c3c; }
+    .member-chip.has-account { background: var(--yellow); }
+    .member-chip .acc-info {
+      font-size: 0.7rem; color: var(--text-light); font-weight: 400;
+      margin-left: 2px;
+    }
+    .member-avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 50%; font-size: 15px;
+      flex-shrink: 0; line-height: 1;
+    }
+    .member-avatar-sm {
+      width: 24px; height: 24px; font-size: 12px;
+    }
+    .member-avatar-lg {
+      width: 42px; height: 42px; font-size: 22px;
+    }
+    .avatar-grid {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+    }
+    .avatar-grid .av-opt {
+      width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+      cursor: pointer; transition: all 0.15s; background: var(--line-light);
+    }
+    .avatar-grid .av-opt:hover { border-color: var(--text-dim); }
+    .avatar-grid .av-opt.active { border-color: var(--text); background: var(--surface); }
+    .color-grid {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+    }
+    .color-grid .clr-opt {
+      width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .color-grid .clr-opt:hover { border-color: var(--text-dim); }
+    .color-grid .clr-opt.active { border-color: var(--text); }
+
+    /* ── Search suggestions ── */
+    .search-wrap { position: relative; }
+    .search-results {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+      margin-top: 4px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    .search-results .sr-item {
+      padding: 10px 14px; cursor: pointer; font-size: 0.85rem;
+      border-bottom: 1px solid var(--line-light); transition: background 0.15s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .search-results .sr-item:last-child { border-bottom: none; }
+    .search-results .sr-item:hover { background: var(--line-light); }
+    .search-results .sr-item .sr-name { font-weight: 500; }
+    .search-results .sr-item .sr-addr { font-size: 0.75rem; color: var(--text-light); }
+    .search-status {
+      font-size: 0.75rem; color: var(--text-light); margin-top: 4px; min-height: 1.2em;
+    }
+
+    /* ── Expenses ── */
+    .expense-item {
+      display: flex; align-items: center; gap: 14px; padding: 12px 0;
+      border-bottom: 1px solid var(--line-light);
+    }
+    .expense-item:last-child { border-bottom: none; }
+    .expense-item .cat-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .expense-item .exp-info { flex: 1; min-width: 0; }
+    .expense-item .exp-desc { font-weight: 500; font-size: 0.9rem; }
+    .expense-item .exp-detail { font-size: 0.75rem; color: var(--text-light); }
+    .expense-item .exp-amount { font-weight: 600; font-size: 1.05rem; text-align: right; }
+    .expense-item .exp-del {
+      background: none; border: none; cursor: pointer; color: var(--text-dim);
+      font-size: 18px; padding: 4px; border-radius: 6px; opacity: 0; transition: all 0.2s;
+    }
+    .expense-item:hover .exp-del { opacity: 0.5; }
+    .expense-item .exp-del:hover { opacity: 1; color: #e74c3c; background: rgba(231,76,60,0.1); }
+
+    /* ── Settlement ── */
+    .settle-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    @media (max-width: 640px) { .settle-grid { grid-template-columns: 1fr; } }
+
+    .settle-member {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      border-radius: 12px; border: 1px solid var(--line); margin-bottom: 8px;
+    }
+    .settle-member.positive { border-color: var(--mint); background: rgba(184,232,216,0.15); }
+    .settle-member.negative { border-color: var(--peach); background: rgba(253,220,181,0.15); }
+    .settle-member .bal { margin-left: auto; font-weight: 600; font-size: 1rem; }
+    .settle-member .bal.pos { color: #2d8a6e; }
+    .settle-member .bal.neg { color: #d68a4a; }
+
+    .settle-transfer {
+      padding: 14px 18px; border-radius: 12px; background: var(--line-light);
+      display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+    }
+    .settle-transfer .arrow { color: var(--text-light); }
+    .settle-transfer .amount { font-weight: 600; font-size: 1rem; margin-left: auto; }
+
+    /* ── Destinations ── */
+    #map {
+      height: 320px; border-radius: var(--radius); border: 1px solid var(--line);
+      margin-bottom: 16px;
+    }
+    .dest-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .dest-item:hover { border-color: var(--lavender); }
+    .dest-item .dest-icon {
+      width: 36px; height: 36px; border-radius: 10px; background: var(--line-light);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      flex-shrink: 0;
+    }
+    .dest-item .dest-info { flex: 1; }
+    .dest-item .dest-name { font-weight: 500; font-size: 0.9rem; }
+    .dest-item .dest-meta { font-size: 0.75rem; color: var(--text-light); }
+    .dest-item .dest-del {
+      background: none; border: none; cursor: pointer; color: var(--text-dim);
+      font-size: 18px; opacity: 0; transition: all 0.2s; padding: 4px;
+    }
+    .dest-item:hover .dest-del { opacity: 0.5; }
+    .dest-item .dest-del:hover { opacity: 1; color: #e74c3c; }
+
+    /* ── Packing ── */
+    .pack-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid var(--line-light);
+    }
+    .pack-item:last-child { border-bottom: none; }
+    .pack-item label {
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+      flex: 1; font-size: 0.9rem;
+    }
+    .pack-item input[type="checkbox"] {
+      width: 18px; height: 18px; accent-color: var(--pink); cursor: pointer;
+      border-radius: 4px;
+    }
+    .pack-item .pack-del {
+      background: none; border: none; color: var(--text-dim); cursor: pointer;
+      font-size: 18px; opacity: 0; transition: all 0.2s;
+    }
+    .pack-item:hover .pack-del { opacity: 0.5; }
+    .pack-item .pack-del:hover { opacity: 1; color: #e74c3c; }
+    .pack-item.checked label { text-decoration: line-through; color: var(--text-dim); }
+
+    /* ── Itinerary ── */
+    .itin-day {
+      margin-bottom: 20px;
+    }
+    .itin-day h4 {
+      font-size: 0.9rem; color: var(--text-light); margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .itin-item {
+      display: flex; gap: 12px; padding: 10px 14px;
+      border-left: 2px solid var(--line); margin-left: 8px; padding-left: 16px;
+      position: relative;
+    }
+    .itin-item::before {
+      content: ''; position: absolute; left: -5px; top: 16px;
+      width: 8px; height: 8px; border-radius: 50%; background: var(--lavender);
+    }
+    .itin-item .itin-time {
+      font-size: 0.8rem; color: var(--text-light); font-weight: 500;
+      white-space: nowrap; min-width: 50px;
+    }
+    .itin-item .itin-info { flex: 1; }
+    .itin-item .itin-activity { font-weight: 500; font-size: 0.9rem; }
+    .itin-item .itin-loc { font-size: 0.75rem; color: var(--text-light); }
+    .itin-item .itin-del {
+      background: none; border: none; color: var(--text-dim); cursor: pointer;
+      font-size: 16px; opacity: 0; transition: all 0.2s;
+    }
+    .itin-item:hover .itin-del { opacity: 0.5; }
+    .itin-item .itin-del:hover { opacity: 1; color: #e74c3c; }
+
+    /* ── Notes (Memo style) ── */
+    .note-card {
+      background: #FFF9C4; border: none;
+      border-radius: 4px; padding: 18px 20px 14px; margin-bottom: 14px;
+      position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      transform: rotate(-0.3deg); transition: transform 0.2s, box-shadow 0.2s;
+      font-family: 'Sarabun', 'Caveat', cursive;
+    }
+    .note-card:nth-child(even) { transform: rotate(0.5deg); background: #FFF3B0; }
+    .note-card:nth-child(3n) { transform: rotate(-0.8deg); background: #FFF9C4; }
+    .note-card:nth-child(5n) { transform: rotate(0.2deg); background: #FFF0A0; }
+    .note-card:hover { transform: rotate(0deg) scale(1.01); box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1; }
+    .note-card .note-text {
+      font-size: 0.92rem; line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+      color: #5D4E37;
+    }
+    .note-card .note-meta {
+      font-size: 0.65rem; color: #B8A070; margin-top: 10px;
+      display: flex; align-items: center; gap: 6px;
+      border-top: 1px dashed rgba(184,160,112,0.3); padding-top: 8px;
+    }
+    .note-card .note-del {
+      position: absolute; top: 6px; right: 8px;
+      background: none; border: none; color: #D4C090; cursor: pointer;
+      font-size: 16px; opacity: 0; transition: all 0.2s; padding: 2px; border-radius: 4px;
+      line-height: 1;
+    }
+    .note-card:hover .note-del { opacity: 0.6; }
+    .note-card .note-del:hover { opacity: 1; color: #e74c3c; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 8px 18px; border-radius: 10px; border: 1px solid var(--line);
+      background: var(--surface); cursor: pointer; font-size: 0.85rem;
+      font-weight: 500; transition: all 0.2s; display: inline-flex;
+      align-items: center; gap: 6px;
+    }
+    .btn:hover { border-color: var(--text-dim); }
+    .btn-primary {
+      background: var(--pink); border-color: var(--pink); color: #fff;
+    }
+    .btn-primary:hover { background: var(--pink-h); border-color: var(--pink-h); }
+    .btn-sm { padding: 6px 14px; font-size: 0.8rem; border-radius: 8px; }
+    .btn-ghost { border-color: transparent; background: var(--line-light); }
+    .btn-ghost:hover { border-color: var(--line); }
+    .btn-danger { border-color: transparent; color: #e74c3c; }
+    .btn-danger:hover { background: rgba(231,76,60,0.08); }
+
+    .btn-icon {
+      width: 36px; height: 36px; padding: 0; display: flex; align-items: center;
+      justify-content: center; border-radius: 10px;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.25);
+      z-index: 2000; align-items: flex-start; justify-content: center;
+      padding: 40px 16px; overflow-y: auto;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: 20px; padding: 28px;
+      width: 100%; max-width: 480px; margin-top: 40px;
+      animation: modalIn 0.25s;
+    }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } }
+    .modal h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; }
+    .modal .form-group { margin-bottom: 16px; }
+    .modal .form-group label {
+      display: block; font-size: 0.8rem; font-weight: 500;
+      color: var(--text-light); margin-bottom: 4px;
+    }
+    .modal .form-group input,
+    .modal .form-group select,
+    .modal .form-group textarea {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--line);
+      border-radius: 10px; font-size: 0.9rem; background: var(--surface);
+      transition: border-color 0.2s;
+    }
+    .modal .form-group input:focus,
+    .modal .form-group select:focus,
+    .modal .form-group textarea:focus { outline: none; border-color: var(--pink); }
+    .modal .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal .form-actions {
+      display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px;
+    }
+
+    /* ── Split UI ── */
+    .split-toggle {
+      display: flex; gap: 8px; margin-bottom: 12px;
+    }
+    .split-toggle .btn {
+      flex: 1; justify-content: center;
+    }
+    .split-toggle .btn.active {
+      background: var(--lavender); border-color: var(--lavender); color: #fff;
+    }
+    .custom-split { display: none; }
+    .custom-split.open { display: block; }
+    .custom-split-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    }
+    .custom-split-row label { flex: 1; font-size: 0.85rem; }
+    .custom-split-row input {
+      width: 100px !important; text-align: right;
+    }
+
+    /* ── Toast ── */
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 300;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px; border-radius: 12px; background: var(--text);
+      color: #fff; font-size: 0.85rem; animation: toastIn 0.3s;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } }
+
+    /* ── Category colors ── */
+    .cat-food { background: var(--peach); }
+    .cat-transport { background: var(--sky); }
+    .cat-accommodation { background: var(--lavender); }
+    .cat-activity { background: var(--mint); }
+    .cat-shopping { background: var(--pink); }
+    .cat-other { background: var(--line-light); }
+
+    /* ── Empty state ── */
+    .empty-state-text {
+      text-align: center; padding: 32px 16px; color: var(--text-dim);
+    }
+    .empty-state-text .icon { font-size: 36px; margin-bottom: 8px; display: block; }
+
+    /* ── Auth ── */
+    .auth-overlay {
+      position: fixed; inset: 0; z-index: 5000;
+      background: linear-gradient(135deg, var(--pink), var(--lavender), var(--sky));
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 20px 0; overflow-y: auto;
+      transition: opacity 0.4s;
+    }
+    .auth-overlay.hidden { display: none; }
+    .auth-card {
+      background: #fff; border-radius: 20px; padding: 28px 24px 24px;
+      width: 380px; max-width: 92vw; margin: auto;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+      text-align: center;
+    }
+    .auth-card h2 { margin: 0 0 4px; font-size: 1.2rem; }
+    .auth-card p { color: var(--text-light); font-size: 0.82rem; margin-bottom: 14px; }
+    .auth-card .form-group { text-align: left; margin-bottom: 10px; }
+    .auth-card .form-group label { display: block; font-size: 0.8rem; color: var(--text-light); margin-bottom: 4px; }
+    .auth-card .form-group input {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--line);
+      border-radius: 10px; font-size: 0.9rem; outline: none; transition: border 0.2s;
+    }
+    .auth-card .form-group input:focus { border-color: var(--pink); }
+    .auth-card .btn-primary { display: block; margin: 8px auto 0; min-width: 180px; text-align: center; }
+    .auth-card .auth-switch {
+      margin-top: 14px; font-size: 0.8rem; color: var(--text-light);
+    }
+    .auth-card .auth-switch a { color: var(--text); cursor: pointer; text-decoration: underline; }
+    .auth-error { color: #e74c3c; font-size: 0.8rem; margin-top: 8px; min-height: 1.2em; }
+    .auth-loading { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .user-badge {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 12px 4px 4px; border-radius: 20px;
+      background: var(--line-light); font-size: 0.8rem;
+    }
+    .user-badge .avatar {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--pink); display: flex; align-items: center;
+      justify-content: center; font-size: 12px; color: #fff;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.open { display: block; }
+      .btn-menu { display: block; }
+      .main { margin-left: 0; }
+      .sidebar .trip-item { padding: 12px 16px; }
+      .sidebar .trip-name { font-size: 0.95rem; }
+      .sidebar .trip-meta { font-size: 0.8rem; }
+      .btn-new-trip { font-size: 0.95rem; padding: 14px; }
+      .main-header { padding: 16px 20px; }
+      .main-header h2 { font-size: 1.4rem; }
+      .main-header .btn-ghost { font-size: 0.85rem; padding: 8px 14px; }
+      .tabs { padding: 0 12px; gap: 4px; }
+      .tabs .tab { font-size: 0.95rem; padding: 10px 14px; }
+      .main-content { padding: 20px 16px 32px; }
+      .summary-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .card { padding: 18px; }
+      .card-header h3 { font-size: 1.1rem; }
+      .modal { margin-top: 16px; padding: 24px; }
+      .modal .form-row { grid-template-columns: 1fr; }
+      .dest-item .dest-name { font-size: 0.95rem; }
+      .expense-item .exp-desc { font-size: 0.95rem; }
+      .expense-item .exp-amount { font-size: 1.1rem; }
+      .itin-item .itin-activity { font-size: 0.95rem; }
+      .pack-item label { font-size: 0.95rem; }
+      .note-item { font-size: 0.97rem; }
+      .modal input, .modal textarea, .modal select { font-size: 1rem; padding: 12px 14px; }
+      .custom-split-row input { font-size: 1rem; padding: 10px; }
+      .settle-member .bal { font-size: 1.05rem; }
+      .settle-transfer .amount { font-size: 1.05rem; }
+      .btn { font-size: 0.95rem; padding: 12px 20px; }
+      .btn-sm { font-size: 0.85rem; padding: 8px 16px; }
+    }
+    @media (max-width: 480px) {
+      .tabs .tab { font-size: 0.85rem; padding: 8px 10px; }
+      .main-header .btn-ghost { font-size: 0.8rem; padding: 6px 10px; }
+      .card { padding: 14px; border-radius: 14px; }
+      .main-content { padding: 16px 12px 28px; }
+      .auth-card { width: 100%; max-width: 100%; border-radius: 0; min-height: 100vh; box-shadow: none; margin: 0; padding: 40px 24px; }
+      .auth-card h2 { font-size: 1.5rem; }
+    }
+
+    .hidden { display: none !important; }
+    .bal.pos { color: #2d8a6e; }
+    .bal.neg { color: #d68a4a; }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ══ TOP NAV ══ -->
+  <nav class="topnav">
+    <div class="topnav-logo" onclick="goHome()">
+      <div class="logo-badge"><span class="material-icons-outlined" style="font-size:20px">flight</span></div>
+      <h1>เที่ยว<span>ด้วยกัน</span></h1>
+    </div>
+    <div class="topnav-actions">
+      <div class="user-badge" id="userBadge" style="display:none;"></div>
+      <button class="hero-btn" onclick="showNewTripModal()">
+        <span class="material-icons-outlined">add_circle</span>
+        สร้างทริปใหม่
+      </button>
+    </div>
+  </nav>
+
+  <!-- ══ HOMEPAGE ══ -->
+  <div class="homepage" id="homePage">
+    <!-- Trip Grid -->
+    <div class="trips-section">
+      <div class="trips-section-header">
+        <h3>ทริปทั้งหมด <span id="tripCount"></span></h3>
+      </div>
+      <div class="trip-grid" id="tripGrid"></div>
+    </div>
+  </div>
+
+  <!-- ══ TRIP DETAIL PAGE ══ -->
+  <div class="trip-detail" id="tripDetailPage">
+    <!-- Detail Header -->
+    <div class="detail-header">
+      <div class="detail-header-left">
+        <button class="back-btn" onclick="goHome()">
+          <span class="material-icons-outlined">arrow_back</span>
+          ทริปทั้งหมด
+        </button>
+        <div class="detail-title" id="detailTitle"></div>
+      </div>
+      <div class="actions" id="headerActions"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs hidden" id="tabBar">
+      <button class="tab active" data-tab="dashboard">ภาพรวม</button>
+      <button class="tab" data-tab="members">สมาชิก</button>
+      <button class="tab" data-tab="expenses">ค่าใช้จ่าย</button>
+      <button class="tab" data-tab="settlement">สรุปยอด</button>
+      <button class="tab" data-tab="destinations">สถานที่</button>
+      <button class="tab" data-tab="packing">กระเป๋า</button>
+      <button class="tab" data-tab="itinerary">กำหนดการ</button>
+      <button class="tab" data-tab="notes">โน้ต</button>
+    </div>
+
+    <!-- Detail Content -->
+    <div class="detail-content" id="mainContent">
+      <div id="tripViews"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Modals ─── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ─── Auth ─── -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card" id="authCard">
+    <div id="authContent"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════
+const STORAGE_KEY = 'travelBuddyData';
+let data = { trips: [] };
+let currentTripId = null;
+let currentTab = 'dashboard';
+let mapInstance = null;
+let mapMarkers = [];
+let _supabase = null;
+let _session = null;
+let _authMode = 'login';
+let _sharedCache = []; // [{tripId, email}]
+let _currentProfile = null;
+let _allTrips = []; // raw trips from Supabase before filtering
+const PROFILE_KEY = 'travelBuddyProfile';
+const ADMIN_EMAILS = ['ronnachai.wijit@gmail.com'];
+
+function isAdmin() {
+  return _session && ADMIN_EMAILS.includes(_session.user?.email);
+}
+
+async function waitSupabase() {
+  const start = Date.now();
+  while (!window.__supReady) {
+    if (Date.now() - start > 6000) { break; }
+    await new Promise(r => setTimeout(r, 50));
+  }
+  _supabase = window.__sup;
+}
+
+// ══ PROFILE SYSTEM (Supabase only) ══
+async function findProfile(phone) {
+  if (!_supabase) return null;
+  try {
+    const { data, error } = await _supabase.from('profiles').select('*').eq('phone', phone).maybeSingle();
+    if (error) return null;
+    if (data) return { phone: data.phone, name: data.name, bankName: data.bank_name || '', bankAccount: data.bank_account || '', avatar: data.avatar || '🐱', color: data.color || '#F8C8DC' };
+    return null;
+  } catch { return null; }
+}
+
+async function saveProfile(profile) {
+  if (!_supabase) return;
+  try {
+    const { error } = await _supabase.from('profiles').upsert({
+      phone: profile.phone, name: profile.name,
+      bank_name: profile.bankName || '', bank_account: profile.bankAccount || '',
+      avatar: profile.avatar || '🐱', color: profile.color || '#F8C8DC'
+    }, { onConflict: 'phone' });
+    if (error) console.warn('Supabase profile save failed', error);
+  } catch(e) { console.warn('Supabase profile save error', e); }
+}
+
+async function registerProfile(phone, name, bankName, bankAccount, avatar, color) {
+  const profile = { phone, name, bankName, bankAccount, avatar, color };
+  await saveProfile(profile);
+  _currentProfile = profile;
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  filterMyTrips();
+  hideAuth();
+  updateUserBadge();
+  renderSidebar();
+  renderTrip();
+}
+
+async function loginProfile(phone) {
+  _currentProfile = await findProfile(phone);
+  if (_currentProfile) {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(_currentProfile));
+    filterMyTrips();
+    hideAuth();
+    updateUserBadge();
+    renderSidebar();
+    renderTrip();
+  }
+}
+
+function getSavedProfile() {
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY)); } catch { return null; }
+}
+
+function logoutProfile() {
+  _currentProfile = null;
+  localStorage.removeItem(PROFILE_KEY);
+  filterMyTrips();
+  renderSidebar();
+  renderTrip();
+  showAuth();
+}
+
+function updateUserBadge() {
+  const el = document.getElementById('userBadge');
+  if (!el) return;
+  if (_currentProfile) {
+    el.innerHTML = `
+      <span class="avatar" style="background:${_currentProfile.color};">${_currentProfile.avatar}</span>
+      <span>${escHtml(_currentProfile.name)}</span>
+      <span class="material-icons-outlined" onclick="logoutProfile()" style="font-size:14px;cursor:pointer;margin-left:2px;" title="ออกจากระบบ">logout</span>
+    `;
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// ══ AUTH UI ══
+function showAuth() {
+  document.getElementById('authOverlay').classList.remove('hidden');
+  renderAuthLogin();
+}
+
+function hideAuth() {
+  document.getElementById('authOverlay').classList.add('hidden');
+}
+
+function renderAuthLogin(msg) {
+  document.getElementById('authContent').innerHTML = `
+    <div style="font-size:48px;margin-bottom:8px;">✈️</div>
+    <h2>เที่ยวด้วยกัน</h2>
+    <p>กรอกเบอร์โทรศัพท์เพื่อเริ่มต้น</p>
+    <div class="form-group">
+      <label>เบอร์โทรศัพท์</label>
+      <input id="authPhone" type="tel" placeholder="08XXXXXXXX" maxlength="10" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+    </div>
+    <div class="auth-error" id="authError">${msg || ''}</div>
+    <button class="btn btn-primary" onclick="handlePhoneLogin()">ดำเนินการต่อ</button>
+  `;
+  setTimeout(() => {
+    const inp = document.getElementById('authPhone');
+    if (inp) inp.focus();
+  }, 100);
+}
+
+function showAuthRegister(msg, phone) {
+  document.getElementById('authContent').innerHTML = `
+    <div style="font-size:32px;margin-bottom:2px;">✈️</div>
+    <h2 style="font-size:1.1rem;">สร้างโปรไฟล์</h2>
+    <p style="margin-bottom:8px;font-size:0.8rem;">กรอกข้อมูลเพื่อเริ่มต้นใช้งาน</p>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:10px;">
+      <div id="regPreview" style="width:56px;height:56px;border-radius:50%;background:${_regColor};display:flex;align-items:center;justify-content:center;font-size:28px;transition:all 0.2s;box-shadow:0 4px 12px rgba(0,0,0,0.1);">${_regAvatar}</div>
+      <span id="regPreviewName" style="font-size:0.8rem;font-weight:600;color:var(--text-light);">ชื่อของคุณ</span>
+    </div>
+    <div class="form-group" style="margin-bottom:8px;">
+      <label style="font-size:0.75rem;">เบอร์โทรศัพท์</label>
+      <input id="regPhone" type="tel" placeholder="08XXXXXXXX" maxlength="10" value="${phone || ''}" oninput="this.value=this.value.replace(/[^0-9]/g,'')" ${phone ? 'readonly style="background:var(--line-light);color:var(--text-light);padding:8px 12px;font-size:0.85rem;"' : 'style="padding:8px 12px;font-size:0.85rem;"'}>
+    </div>
+    <div class="form-group" style="margin-bottom:8px;">
+      <label style="font-size:0.75rem;">ชื่อ</label>
+      <input id="regName" placeholder="ชื่อของคุณ" style="padding:8px 12px;font-size:0.85rem;" oninput="document.getElementById('regPreviewName').textContent=this.value||'ชื่อของคุณ'">
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;gap:6px;display:grid;">
+      <div class="form-group" style="margin-bottom:8px;">
+        <label style="font-size:0.75rem;">ธนาคาร</label>
+        <select id="regBank" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:0.85rem;">
+          <option value="">- ไม่ระบุ -</option>
+          <option>พร้อมเพย์</option>
+          <option>ธ.กรุงเทพ</option>
+          <option>ธ.กสิกรไทย</option>
+          <option>ธ.ไทยพาณิชย์</option>
+          <option>ธ.กรุงไทย</option>
+          <option>ธ.ทหารไทยธนชาต</option>
+          <option>ธ.ออมสิน</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label style="font-size:0.75rem;">เลขบัญชี</label>
+        <input id="regAccount" placeholder="xxx-x-xxxxx-x" style="padding:8px 10px;font-size:0.85rem;">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:4px;">
+      <label style="font-size:0.75rem;">รูปโปรไฟล์</label>
+      <div class="avatar-grid" id="regAvatarGrid" style="justify-content:center;max-height:76px;overflow-y:auto;padding:2px 0;gap:3px;">
+        ${AVATARS.map(a => `<span class="av-opt" onclick="selectRegAvatar('${a}')" style="font-size:16px;width:30px;height:30px;">${a}</span>`).join('')}
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:4px;">
+      <label style="font-size:0.75rem;">สีพื้นหลัง</label>
+      <div class="color-grid" id="regColorGrid" style="justify-content:center;gap:3px;">
+        ${COLORS.map(c => `<span class="clr-opt" onclick="selectRegColor('${c}')" style="background:${c};width:24px;height:24px;"></span>`).join('')}
+      </div>
+    </div>
+    <div class="auth-error" id="authError" style="margin-top:4px;">${msg || ''}</div>
+    <button class="btn btn-primary" onclick="handleRegister()" style="margin-top:6px;">สร้างโปรไฟล์</button>
+    <div class="auth-switch" style="margin-top:8px;font-size:0.75rem;">มีบัญชีแล้ว? <a onclick="showAuthLogin()">เข้าสู่ระบบ</a></div>
+  `;
+  if (phone) setTimeout(() => document.getElementById('regName')?.focus(), 150);
+}
+
+function showAuthLogin(msg) {
+  renderAuthLogin(msg);
+}
+
+let _regAvatar = '🐱', _regColor = '#F8C8DC';
+function selectRegAvatar(a) {
+  _regAvatar = a;
+  document.querySelectorAll('#regAvatarGrid .av-opt').forEach(el => el.classList.toggle('active', el.textContent === a));
+  const preview = document.getElementById('regPreview');
+  if (preview) preview.textContent = a;
+}
+function selectRegColor(c) {
+  _regColor = c;
+  document.querySelectorAll('#regColorGrid .clr-opt').forEach(el => el.classList.toggle('active', el.style.background === c));
+  const preview = document.getElementById('regPreview');
+  if (preview) preview.style.background = c;
+}
+
+async function handlePhoneLogin() {
+  const phone = document.getElementById('authPhone')?.value.trim();
+  if (!phone || phone.length < 9) { document.getElementById('authError').textContent = 'กรุณากรอกเบอร์โทรศัพท์'; return; }
+  document.getElementById('authError').textContent = '⏳ กำลังตรวจสอบ...';
+  const existing = await findProfile(phone);
+  if (existing) {
+    document.getElementById('authError').textContent = '';
+    document.getElementById('authContent').innerHTML = `
+      <div style="font-size:48px;margin-bottom:8px;">✈️</div>
+      <h2>ยินดีต้อนรับกลับ!</h2>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px;">
+        <span style="font-size:64px;">${existing.avatar}</span>
+        <span style="font-size:1.2rem;font-weight:600;">${escHtml(existing.name)}</span>
+        <span style="color:var(--text-light);font-size:0.85rem;">${existing.phone}</span>
+      </div>
+      <p style="color:var(--text-light);font-size:0.85rem;">✅ พบข้อมูลบัญชีเก่า เข้าสู่ระบบต่อเลย!</p>
+      <div class="auth-error" id="authError"></div>
+      <button class="btn btn-primary" onclick="loginProfile('${phone}')">เข้าสู่ระบบ</button>
+      <div class="auth-switch">ไม่ใช่คุณ? <a onclick="showAuthLogin()">เปลี่ยนเบอร์</a></div>
+    `;
+  } else {
+    document.getElementById('authError').textContent = 'ไม่พบข้อมูลเบอร์นี้ กำลังไปหน้าสร้างโปรไฟล์...';
+    setTimeout(() => showAuthRegister('', phone), 600);
+  }
+}
+
+async function handleRegister() {
+  const err = document.getElementById('authError');
+  if (!err) return;
+  const phone = document.getElementById('regPhone')?.value.trim();
+  const name = document.getElementById('regName')?.value.trim();
+  const bankName = document.getElementById('regBank')?.value;
+  const bankAccount = document.getElementById('regAccount')?.value.trim();
+  if (!phone || phone.length < 9) { err.textContent = 'กรุณากรอกเบอร์โทรศัพท์'; return; }
+  if (!name) { err.textContent = 'กรุณากรอกชื่อ'; return; }
+  try {
+    const existing = await findProfile(phone);
+    if (existing) { err.textContent = 'เบอร์นี้มีบัญชีอยู่แล้ว!'; return; }
+  } catch(e) { console.warn('check existing failed', e); }
+  await registerProfile(phone, name, bankName, bankAccount, _regAvatar, _regColor);
+}
+
+window.showAuth = showAuth;
+window.hideAuth = hideAuth;
+window.showAuthLogin = showAuthLogin;
+window.showAuthRegister = showAuthRegister;
+window.handlePhoneLogin = handlePhoneLogin;
+window.handleRegister = handleRegister;
+window.selectRegAvatar = selectRegAvatar;
+window.selectRegColor = selectRegColor;
+window.loginProfile = loginProfile;
+window.logoutProfile = logoutProfile;
+
+async function loadData() {
+  if (_supabase) {
+    try {
+      // ดึงทริปทั้งหมดจาก Supabase (ทุกคนเห็นได้)
+      const { data: owned, error } = await _supabase
+        .from('trips')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      const supabaseTrips = [];
+      for (const r of (owned || [])) {
+        supabaseTrips.push({
+          id: r.id, name: r.name, icon: r.icon, pin: r.pin,
+          createdAt: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
+          ...(r.data || {})
+        });
+      }
+      if (supabaseTrips.length > 0) {
+        data.trips = supabaseTrips;
+        _allTrips = JSON.parse(JSON.stringify(supabaseTrips));
+        await migrateData();
+        return;
+      }
+    } catch(e) { console.warn('Supabase load failed, trying localStorage', e); }
+  }
+  // Fallback — localStorage
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      data = JSON.parse(raw);
+      _allTrips = JSON.parse(JSON.stringify(data.trips || []));
+      if (_supabase) await saveData();
+      await migrateData();
+      return;
+    }
+  } catch(e) { data = { trips: [] }; }
+  if (!data.trips) data.trips = [];
+  _allTrips = JSON.parse(JSON.stringify(data.trips));
+  await migrateData();
+}
+
+function filterMyTrips() {
+  const phone = _currentProfile?.phone;
+  if (!phone) { data.trips = []; return; }
+  if (!_allTrips || !_allTrips.length) { data.trips = []; return; }
+  data.trips = _allTrips.filter(t =>
+    t.ownerPhone === phone ||
+    (t.members || []).some(m => m.phone === phone) ||
+    (!t.ownerPhone && phone)
+  );
+}
+
+async function migrateData() {
+  for (const t of data.trips) {
+    if (t.name === 'สุพรรณบุรี' || t.name === 'สุพรรณ') {
+      t.pin = '1111';
+      sessionStorage.removeItem('unlocked_trip_' + t.id);
+    }
+  }
+  await saveData();
+}
+
+async function saveData() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) { console.warn('localStorage save failed', e); }
+  if (!_supabase) return;
+  try {
+    for (const t of data.trips || []) {
+      const { id, name, icon, pin, createdAt, ...rest } = t;
+      await _supabase.from('trips').upsert({
+        id, name, icon, pin,
+        data: rest
+      }, { onConflict: 'id' });
+    }
+  } catch(e) { console.warn('Supabase save failed', e); }
+}
+
+function promptPin(tripId, errorMsg = '') {
+  showModal(`
+    <h3 style="text-align:center;margin-bottom:12px;">🔑 เข้าสู่ทริป</h3>
+    <p style="text-align:center;font-size:0.85rem;color:var(--text-light);margin-bottom:16px;">กรุณากรอก PIN 4 หลักเพื่อความปลอดภัย</p>
+    <div class="form-group" style="text-align:center;">
+      <input id="tripPinInput" type="password" maxlength="4" placeholder="••••" style="font-size:2rem; letter-spacing:0.5rem; text-align:center; width:150px; display:block; margin: 0 auto;" autofocus oninput="checkPinLength(this, '${tripId}')">
+      <div id="pinError" style="color:#e74c3c; font-size:0.85rem; margin-top:10px; height:1.2em;">${errorMsg}</div>
+    </div>
+    <div class="form-actions" style="justify-content:center;margin-top:20px;">
+      <button class="btn" onclick="closeModal()">ยกเลิก</button>
+    </div>
+  `);
+  setTimeout(() => {
+    const inp = document.getElementById('tripPinInput');
+    if (inp) inp.focus();
+  }, 100);
+}
+window.promptPin = promptPin;
+
+function checkPinLength(el, tripId) {
+  if (el.value.length === 4) {
+    verifyTripPin(tripId, el.value);
+  }
+}
+window.checkPinLength = checkPinLength;
+
+function verifyTripPin(tripId, enteredPin) {
+  const t = getTrip(tripId);
+  if (t) {
+    if (!t.pin || t.pin === enteredPin) {
+      sessionStorage.setItem('unlocked_trip_' + tripId, 'true');
+      closeModal();
+      selectTripDirectly(tripId);
+    } else {
+      document.getElementById('pinError').textContent = '❌ PIN ไม่ถูกต้อง';
+      document.getElementById('tripPinInput').value = '';
+    }
+  }
+}
+window.verifyTripPin = verifyTripPin;
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+function getTrip(id) { return data.trips.find(t => t.id === id); }
+function currentTrip() { return getTrip(currentTripId); }
+
+function showToast(msg) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.remove(); }, 2500);
+}
+
+// ═══════════════════════════════════════════════
+//  SIDEBAR
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (sidebar) sidebar.classList.toggle('open');
+  if (overlay) overlay.classList.toggle('open');
+}
+if (document.getElementById('sidebarOverlay')) {
+  document.getElementById('sidebarOverlay').onclick = toggleSidebar;
+}
+
+function renderSidebar() {
+  const list = document.getElementById('tripList');
+  if (!list) return;
+  list.innerHTML = data.trips.map(t => {
+    const active = t.id === currentTripId ? 'active' : '';
+    const memberCount = (t.members || []).length;
+    const expenseCount = (t.expenses || []).length;
+    const hasPin = !!t.pin;
+    return `
+      <div class="trip-item ${active}" onclick="selectTrip('${t.id}')">
+        <div class="trip-icon"><span class="material-icons-outlined">${t.icon || 'flight'}</span></div>
+        <div class="trip-info">
+          <div class="trip-name">${escHtml(t.name)} ${hasPin ? '<span style="font-size:0.65rem;background:var(--lavender);padding:1px 6px;border-radius:6px;margin-left:4px;">🔒 ล็อก</span>' : ''}</div>
+          <div class="trip-meta">${memberCount} คน · ${expenseCount} รายการ</div>
+        </div>
+        <button class="trip-del material-icons-outlined" onclick="event.stopPropagation();deleteTrip('${t.id}')" title="ลบทริป">close</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ═══════════════════════════════════════════════
+//  TRIP CRUD
+// ═══════════════════════════════════════════════
+function selectTrip(id) {
+  const t = getTrip(id);
+  if (!t) return;
+  const isUnlocked = sessionStorage.getItem('unlocked_trip_' + id) === 'true';
+  if (t.pin && !isUnlocked) {
+    promptPin(id);
+    return;
+  }
+  selectTripDirectly(id);
+}
+
+function selectTripDirectly(id) {
+  currentTripId = id;
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (window.innerWidth <= 768) {
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+  }
+  renderSidebar();
+  renderTrip();
+}
+
+async function deleteTrip(id) {
+  if (!confirm('แน่ใจว่าจะลบทริปนี้?')) return;
+  data.trips = data.trips.filter(t => t.id !== id);
+  _allTrips = _allTrips.filter(t => t.id !== id);
+  if (currentTripId === id) { currentTripId = null; }
+  if (_supabase) {
+    try {
+      await _supabase.from('trips').delete().eq('id', id);
+    } catch(e) { console.warn('Supabase delete failed', e); }
+  }
+  saveData();
+  renderSidebar();
+  renderTripGrid();
+  renderTrip();
+}
+
+function showNewTripModal() {
+  showModal(`
+    <h3>✈️ สร้างทริปใหม่</h3>
+    <div class="form-group">
+      <label>ชื่อทริป</label>
+      <input id="newTripName" placeholder="เช่น ไปเชียงใหม่กันเถอะ" autofocus>
+    </div>
+    <div class="form-group">
+      <label>ไอคอน</label>
+      <select id="newTripIcon">
+        <option value="flight">✈️ เครื่องบิน</option>
+        <option value="beach_access">🏖️ ชายหาด</option>
+        <option value="terrain">🏔️ ภูเขา</option>
+        <option value="location_city">🏙️ เมือง</option>
+        <option value="restaurant">🍽️ อาหาร</option>
+        <option value="camping">🏕️ แคมป์ปิ้ง</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>PIN 4 หลัก (เพื่อป้องกันคนอื่นเข้าทริป)</label>
+      <input id="newTripPin" type="password" maxlength="4" placeholder="ระบุตัวเลข 4 หลัก เช่น 1234">
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="createTrip()">สร้างทริป</button>
+    </div>
+  `);
+}
+window.showNewTripModal = showNewTripModal;
+
+function createTrip() {
+  const name = document.getElementById('newTripName').value.trim();
+  if (!name) { showToast('กรุณาใส่ชื่อทริป'); return; }
+  const pin = document.getElementById('newTripPin').value.trim();
+  if (pin.length !== 4 || isNaN(pin)) { showToast('กรุณาตั้ง PIN เป็นตัวเลข 4 หลัก'); return; }
+  const icon = document.getElementById('newTripIcon').value;
+  const trip = {
+    id: genId(), name, icon, pin, createdAt: Date.now(),
+    ownerPhone: _currentProfile?.phone || '',
+    members: _currentProfile ? [{
+      id: genId(), name: _currentProfile.name,
+      phone: _currentProfile.phone,
+      avatar: _currentProfile.avatar,
+      color: _currentProfile.color,
+      bankName: _currentProfile.bankName,
+      bankAccount: _currentProfile.bankAccount
+    }] : [],
+    expenses: [], destinations: [],
+    packingItems: [], itinerary: [], notes: []
+  };
+  data.trips.push(trip);
+  _allTrips.push(trip);
+  sessionStorage.setItem('unlocked_trip_' + trip.id, 'true');
+  saveData(); closeModal(); selectTrip(trip.id);
+}
+window.createTrip = createTrip;
+
+// ═══════════════════════════════════════════════
+//  HOME NAVIGATION & GRID
+// ═══════════════════════════════════════════════
+function goHome() {
+  currentTripId = null;
+  const homePage = document.getElementById('homePage');
+  const tripDetailPage = document.getElementById('tripDetailPage');
+  if (homePage) homePage.classList.remove('hidden');
+  if (tripDetailPage) {
+    tripDetailPage.classList.remove('active');
+    tripDetailPage.style.display = '';
+  }
+  renderTripGrid();
+  renderSidebar();
+  renderTrip();
+}
+window.goHome = goHome;
+
+function renderTripGrid() {
+  const grid = document.getElementById('tripGrid');
+  const countEl = document.getElementById('tripCount');
+  if (!grid) return;
+
+  if (countEl) {
+    countEl.textContent = `(${data.trips.length})`;
+  }
+
+  if (data.trips.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-trips">
+        <div class="et-icon">🧭</div>
+        <h4>ยังไม่มีทริปการเดินทาง</h4>
+        <p>สร้างทริปแรกของคุณแล้วเริ่มแพลนการเดินทางกับเพื่อนๆ ได้เลย!</p>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = data.trips.map(t => {
+    const memberCount = (t.members || []).length;
+    const expenseCount = (t.expenses || []).length;
+    const destCount = (t.destinations || []).length;
+    const hasPin = !!t.pin;
+    
+    const iconName = t.icon || 'flight';
+    const emojiMap = {
+      flight: '✈️',
+      beach_access: '🏖️',
+      terrain: '🏔️',
+      location_city: '🏙️',
+      restaurant: '🍽️',
+      camping: '🏕️'
+    };
+    const coverEmoji = emojiMap[iconName] || '✈️';
+    
+    return `
+      <div class="trip-card" onclick="selectTrip('${t.id}')">
+        <div class="trip-card-cover cat-${iconName === 'flight' ? 'transport' : iconName === 'beach_access' ? 'food' : iconName === 'terrain' ? 'activity' : iconName === 'location_city' ? 'accommodation' : iconName === 'restaurant' ? 'food' : 'other'}">
+          <span class="trip-card-cover-emoji">${coverEmoji}</span>
+          <div class="trip-card-cover-blur">${coverEmoji}</div>
+        </div>
+        <div class="trip-card-body">
+          <div class="trip-card-name">
+            ${escHtml(t.name)}
+            ${hasPin ? '<span class="pin-badge"><span class="material-icons-outlined">lock</span> PIN</span>' : ''}
+          </div>
+          <div class="trip-card-meta">
+            <span><span class="material-icons-outlined">people</span> ${memberCount} คน</span>
+            <span><span class="material-icons-outlined">payments</span> ${expenseCount} รายการ</span>
+            <span><span class="material-icons-outlined">place</span> ${destCount} สถานที่</span>
+          </div>
+          <div class="trip-card-footer">
+            <div class="trip-card-enter">
+              ดูรายละเอียด <span class="material-icons-outlined">arrow_forward</span>
+            </div>
+            <button class="trip-card-del material-icons-outlined" onclick="event.stopPropagation(); deleteTrip('${t.id}')" title="ลบทริป">delete</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+window.renderTripGrid = renderTripGrid;
+
+// ═══════════════════════════════════════════════
+//  RENDER TRIP DETAIL
+// ═══════════════════════════════════════════════
+function renderTrip() {
+  const t = currentTrip();
+  const title = document.getElementById('detailTitle');
+  const tabBar = document.getElementById('tabBar');
+  const views = document.getElementById('tripViews');
+  const homePage = document.getElementById('homePage');
+  const tripDetailPage = document.getElementById('tripDetailPage');
+
+  if (!t) {
+    if (homePage) homePage.classList.remove('hidden');
+    if (tripDetailPage) tripDetailPage.classList.remove('active');
+    renderTripGrid();
+    return;
+  }
+
+  if (homePage) homePage.classList.add('hidden');
+  if (tripDetailPage) {
+    tripDetailPage.classList.add('active');
+  }
+
+  if (tabBar) tabBar.classList.remove('hidden');
+  if (title) title.innerHTML = `${escHtml(t.name)} <small>${t.members.length} คน | ${t.expenses.length} รายการ</small>`;
+
+  // Bind tab clicks
+  document.querySelectorAll('.tab').forEach(el => {
+    el.onclick = () => switchTab(el.dataset.tab);
+  });
+
+  renderTabContent(t);
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  renderTabContent(currentTrip());
+}
+
+function renderTabContent(t) {
+  if (!t) return;
+  const views = document.getElementById('tripViews');
+  const actions = document.getElementById('headerActions');
+  const isOwner = t && !t._isShared && _session;
+  actions.innerHTML = `
+    ${isOwner ? `<button class="btn btn-ghost btn-sm" onclick="showShareTripModal()" title="แชร์ทริป">🔗 แชร์</button>` : ''}
+    ${_installPrompt ? `<button class="btn btn-ghost btn-sm" onclick="installApp()" title="ติดตั้งแอป">📲 ติดตั้ง</button>` : ''}
+  `;
+  switch (currentTab) {
+    case 'dashboard': views.innerHTML = renderDashboard(t); break;
+    case 'members': views.innerHTML = renderMembers(t); break;
+    case 'expenses': views.innerHTML = renderExpenses(t); break;
+    case 'settlement': views.innerHTML = renderSettlement(t); break;
+    case 'destinations': views.innerHTML = renderDestinations(t); break;
+    case 'packing': views.innerHTML = renderPacking(t); break;
+    case 'itinerary': views.innerHTML = renderItinerary(t); break;
+    case 'notes': views.innerHTML = renderNotes(t); break;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDashboard(t) {
+  const members = t.members || [];
+  const totalExp = (t.expenses || []).reduce((s, e) => s + e.amount, 0);
+  const perPerson = members.length > 0 ? (totalExp / members.length) : 0;
+  const destCount = (t.destinations || []).length;
+  const packTotal = (t.packingItems || []).length;
+  const packDone = (t.packingItems || []).filter(i => i.checked).length;
+
+  return `
+    <div class="summary-grid">
+      <div class="summary-card pink">
+        <div class="num">฿${totalExp.toLocaleString()}</div>
+        <div class="label">ค่าใช้จ่ายรวม</div>
+      </div>
+      <div class="summary-card lavender">
+        <div class="num">฿${perPerson.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
+        <div class="label">เฉลี่ยต่อคน</div>
+      </div>
+      <div class="summary-card mint">
+        <div class="num">${t.members.length}</div>
+        <div class="label">สมาชิก</div>
+      </div>
+      <div class="summary-card sky">
+        <div class="num">${destCount}</div>
+        <div class="label">สถานที่</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>📋 สรุปทริป</h3></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.9rem;">
+        <div><span style="color:var(--text-light)">ค่าใช้จ่ายทั้งหมด</span><br><strong>${t.expenses.length} รายการ</strong></div>
+        <div><span style="color:var(--text-light)">สมาชิก</span><br><strong>${t.members.length} คน</strong></div>
+        <div><span style="color:var(--text-light)">สถานที่</span><br><strong>${destCount} แห่ง</strong></div>
+        <div><span style="color:var(--text-light)">กระเป๋า</span><br><strong>${packDone}/${packTotal}</strong></div>
+      </div>
+    </div>
+
+    ${t.expenses.length > 0 ? `
+    <div class="card">
+      <div class="card-header"><h3>📊 ค่าใช้จ่ายตามหมวดหมู่</h3></div>
+      ${(() => {
+        const catData = {};
+        const catEmoji = { food: '🍽️', transport: '🚗', accommodation: '🏨', activity: '🎮', shopping: '🛍️', other: '📦' };
+        const catColors = { food: '#FDDCB5', transport: '#B8D8F0', accommodation: '#D8C8F0', activity: '#B8E8D8', shopping: '#F8C8DC', other: '#E8E0DC' };
+        const catNames = { food: 'อาหาร', transport: 'เดินทาง', accommodation: 'ที่พัก', activity: 'กิจกรรม', shopping: 'ช้อปปิ้ง', other: 'อื่นๆ' };
+        let total = 0;
+        t.expenses.forEach(e => {
+          const c = e.category || 'other';
+          catData[c] = (catData[c] || 0) + e.amount;
+          total += e.amount;
+        });
+        const sorted = Object.entries(catData).sort((a,b) => b[1] - a[1]);
+        return sorted.map(([cat, amt]) => {
+          const pct = total > 0 ? (amt / total * 100) : 0;
+          return `
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:0.85rem;font-weight:600;display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:1.1rem;">${catEmoji[cat] || '📦'}</span>
+                  ${catNames[cat] || 'อื่นๆ'}
+                </span>
+                <span style="font-size:0.85rem;font-weight:700;color:var(--text);">฿${amt.toLocaleString()} <span style="font-weight:400;color:var(--text-light);font-size:0.75rem;">(${pct.toFixed(0)}%)</span></span>
+              </div>
+              <div style="height:22px;background:var(--line-light);border-radius:20px;overflow:hidden;position:relative;">
+                <div style="height:100%;width:${pct}%;background:${catColors[cat]};border-radius:20px;transition:width 0.6s ease;position:relative;">
+                  <div style="position:absolute;top:0;right:0;bottom:0;left:0;background:linear-gradient(180deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0) 60%);border-radius:20px;"></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      })()}
+      <div style="text-align:right;font-size:0.8rem;color:var(--text-light);margin-top:4px;">รวมทั้งหมด ฿${t.expenses.reduce((s,e) => s + e.amount, 0).toLocaleString()}</div>
+    </div>` : `
+    <div class="card" style="text-align:center;padding:40px;">
+      <div style="font-size:36px;margin-bottom:8px;">💸</div>
+      <p style="color:var(--text-light);">ยังไม่มีค่าใช้จ่าย<br>เริ่มเพิ่มรายการแรกของคุณ!</p>
+    </div>`}
+  `;
+}
+
+function catIcon(cat) {
+  const m = { food: 'restaurant', transport: 'directions_car', accommodation: 'hotel', activity: 'sports_esports', shopping: 'shopping_bag' };
+  return m[cat] || 'receipt_long';
+}
+
+function splitMemberStr(e, members) {
+  const sm = e.splitMembers;
+  if (!sm || sm.length === members.length) return '';
+  const names = sm.map(id => { const m = members.find(x => x.id === id); return m ? m.name : '?'; }).join(', ');
+  return `แบ่ง: ${names}`;
+}
+
+const AVATARS = ['🐱','🐶','🐰','🐼','🦊','🐸','🐵','🦁','🐯','🐮','🐷','🐙','🦄','🐲','🦋','🌸','🌻','🍀','🌈','⭐','🎈','🍭','👧','🧒','👦','👩','🧑','👨','💁‍♀️','💁','🙋','🙆','💃','🕺','🧚','🧝','🧙','🦸','🦹','🎨','🎭','🐨','🦝','🦥','🦦','🦔','🐿️','🦎','🐢','🐍','🦖','🦕','🐳','🐬','🦈','🐊','🦩','🦜','🦚','🐉'];
+const COLORS = ['#F8C8DC','#D8C8F0','#B8E8D8','#FDDCB5','#B8D8F0','#FFF2CC','#FFD1DC','#E8D5F5','#D5F5E3','#FFE5D9','#D5E8F5','#FFF5D5','#F0D5E8','#D5E8F0'];
+
+function memberColor(m) { return m && m.color ? m.color : '#E8E0DC'; }
+function memberAvatar(m) { return m && m.avatar ? m.avatar : '👤'; }
+
+function memberHtml(m, size) {
+  const s = size === 'sm' ? 'member-avatar-sm' : size === 'lg' ? 'member-avatar-lg' : '';
+  return `<span class="member-avatar ${s}" style="background:${memberColor(m)}">${memberAvatar(m)}</span>`;
+}
+function memberLabel(m, size) {
+  return memberHtml(m, size) + escHtml(m.name);
+}
+
+// ═══════════════════════════════════════════════
+//  MEMBERS
+// ═══════════════════════════════════════════════
+function renderMembers(t) {
+  const members = t.members || [];
+  return `
+    <div class="card">
+      <div class="card-header">
+        <h3>👥 สมาชิก (${members.length} คน)</h3>
+        <button class="btn btn-primary btn-sm" onclick="showAddMemberModal()">+ เพิ่มสมาชิก</button>
+      </div>
+      ${members.length === 0 ? '<div class="empty-state-text"><span class="icon">👤</span>ยังไม่มีสมาชิก<br>เพิ่มเพื่อนร่วมทริปกันเถอะ!</div>' : `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+        ${members.map(m => `
+          <div class="member-chip" style="border-radius:12px;padding:12px;flex-wrap:nowrap;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${memberHtml(m, 'lg')}
+              <div>
+                <div style="font-weight:500;">${escHtml(m.name)} ${m.phone ? '<span style="font-size:0.6rem;background:var(--mint);padding:1px 6px;border-radius:8px;font-weight:400;vertical-align:middle;">เชื่อมต่อ</span>' : ''}</div>
+                ${m.bankName || m.bankAccount ? `<div style="font-size:0.7rem;color:var(--text-light);">${escHtml(m.bankName || '')} ${escHtml(m.bankAccount || '')}</div>` : '<div style="font-size:0.7rem;color:var(--text-dim);">ยังไม่ระบุบัญชี</div>'}
+              </div>
+            </div>
+            <div style="display:flex;gap:4px;">
+              <button class="btn btn-sm btn-ghost" onclick="showEditMemberModal('${m.id}')" title="แก้ไขบัญชี" style="padding:4px 8px;font-size:14px;"><span class="material-icons-outlined" style="font-size:16px;">edit</span></button>
+              <button class="btn btn-sm btn-ghost" onclick="deleteMember('${m.id}')" title="ลบ" style="padding:4px 8px;font-size:14px;color:#e74c3c;"><span class="material-icons-outlined" style="font-size:16px;">close</span></button>
+            </div>
+          </div>
+        `).join('')}
+      </div>`}
+    </div>
+  `;
+}
+
+function showAddMemberModal() {
+  showModal(`
+    <h3>👤 เพิ่มสมาชิก</h3>
+    <div class="form-group">
+      <label>เบอร์โทรศัพท์ (ถ้ามี)</label>
+      <input id="newMemberPhone" type="tel" placeholder="08XXXXXXXX" maxlength="10" oninput="lookupMemberPhone(this.value)" style="font-size:0.85rem;padding:8px 12px;">
+      <div id="memberLookupResult" style="font-size:0.75rem;color:var(--text-light);margin-top:4px;min-height:1.2em;"></div>
+    </div>
+    <div class="form-group">
+      <label>ชื่อ</label>
+      <input id="newMemberName" placeholder="ชื่อเพื่อน" autofocus>
+    </div>
+    <div class="form-group">
+      <label>อวาตาร์</label>
+      <div class="avatar-grid" id="avatarGrid">
+        ${AVATARS.map((a, i) => `<span class="av-opt${i === 0 ? ' active' : ''}" data-avatar="${a}" onclick="pickAvatar(this)">${a}</span>`).join('')}
+      </div>
+    </div>
+    <div class="form-group">
+      <label>สีพื้นหลัง</label>
+      <div class="color-grid" id="colorGrid">
+        ${COLORS.map((c, i) => `<span class="clr-opt${i === 0 ? ' active' : ''}" data-color="${c}" style="background:${c}" onclick="pickColor(this)"></span>`).join('')}
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>ธนาคาร (ไม่บังคับ)</label>
+        <select id="newMemberBank">
+          <option value="">- ไม่ระบุ -</option>
+          <option>พร้อมเพย์</option>
+          <option>ธ.กรุงเทพ</option>
+          <option>ธ.กสิกรไทย</option>
+          <option>ธ.ไทยพาณิชย์</option>
+          <option>ธ.กรุงไทย</option>
+          <option>ธ.ทหารไทยธนชาต</option>
+          <option>ธ.ออมสิน</option>
+          <option>ธ.อาคารสงเคราะห์</option>
+          <option>ธ.เกียรตินาคินภัทร</option>
+          <option>ธ.ซีไอเอ็มบี ไทย</option>
+          <option>ธ.ยูโอบี</option>
+          <option>อื่นๆ</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>เลขบัญชี (ไม่บังคับ)</label>
+        <input id="newMemberAccount" placeholder="xxx-x-xxxxx-x">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="addMember()">เพิ่ม</button>
+    </div>
+  `);
+}
+
+let _memberLookupTimer = null;
+async function lookupMemberPhone(val) {
+  clearTimeout(_memberLookupTimer);
+  const result = document.getElementById('memberLookupResult');
+  if (!val || val.length < 9) { result.textContent = ''; return; }
+  result.textContent = '⏳ กำลังค้นหา...';
+  _memberLookupTimer = setTimeout(async () => {
+    if (!_supabase) { result.textContent = ''; return; }
+    try {
+      const { data } = await _supabase.from('profiles').select('*').eq('phone', val).maybeSingle();
+      if (data) {
+        document.getElementById('newMemberName').value = data.name || '';
+        document.getElementById('newMemberName').focus();
+        if (data.bank_name) document.getElementById('newMemberBank').value = data.bank_name;
+        if (data.bank_account) document.getElementById('newMemberAccount').value = data.bank_account;
+        if (data.avatar) {
+          document.querySelectorAll('#avatarGrid .av-opt').forEach(el => el.classList.toggle('active', el.dataset.avatar === data.avatar));
+        }
+        if (data.color) {
+          document.querySelectorAll('#colorGrid .clr-opt').forEach(el => el.classList.toggle('active', el.style.background === data.color));
+        }
+        result.innerHTML = '✅ พบข้อมูล: <strong>' + escHtml(data.name) + '</strong>';
+      } else {
+        result.textContent = 'ไม่พบผู้ใช้';
+      }
+    } catch(e) { result.textContent = ''; }
+  }, 500);
+}
+window.showAddMemberModal = showAddMemberModal;
+
+function pickAvatar(el) {
+  document.querySelectorAll('#avatarGrid .av-opt').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+}
+window.pickAvatar = pickAvatar;
+
+function pickColor(el) {
+  document.querySelectorAll('#colorGrid .clr-opt').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+window.pickColor = pickColor;
+
+function getPickedAvatar() {
+  const a = document.querySelector('#avatarGrid .av-opt.active');
+  return a ? a.dataset.avatar : AVATARS[0];
+}
+function getPickedColor() {
+  const c = document.querySelector('#colorGrid .clr-opt.active');
+  return c ? c.dataset.color : COLORS[0];
+}
+
+function addMember() {
+  const name = document.getElementById('newMemberName').value.trim();
+  if (!name) { showToast('กรุณาใส่ชื่อ'); return; }
+  const t = currentTrip(); if (!t) return;
+  if (t.members.length >= 20) { showToast('สมาชิกเกิน 20 คนแล้ว'); return; }
+  const phone = document.getElementById('newMemberPhone').value.trim();
+  t.members.push({
+    id: genId(), name, phone: phone || undefined,
+    avatar: getPickedAvatar(),
+    color: getPickedColor(),
+    bankName: document.getElementById('newMemberBank').value,
+    bankAccount: document.getElementById('newMemberAccount').value.trim()
+  });
+  saveData(); closeModal(); renderTabContent(t);
+}
+window.addMember = addMember;
+
+function showEditMemberModal(id) {
+  const t = currentTrip(); if (!t) return;
+  const m = t.members.find(x => x.id === id);
+  if (!m) return;
+  const mA = memberAvatar(m), mC = memberColor(m);
+  showModal(`
+    <h3>✏️ แก้ไข: ${escHtml(m.name)}</h3>
+    <div class="form-group">
+      <label>อวาตาร์</label>
+      <div class="avatar-grid" id="avatarGrid">
+        ${AVATARS.map(a => `<span class="av-opt${a === mA ? ' active' : ''}" data-avatar="${a}" onclick="pickAvatar(this)">${a}</span>`).join('')}
+      </div>
+    </div>
+    <div class="form-group">
+      <label>สีพื้นหลัง</label>
+      <div class="color-grid" id="colorGrid">
+        ${COLORS.map(c => `<span class="clr-opt${c === mC ? ' active' : ''}" data-color="${c}" style="background:${c}" onclick="pickColor(this)"></span>`).join('')}
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>ธนาคาร</label>
+        <select id="editMemberBank">
+          <option value="">- ไม่ระบุ -</option>
+          <option ${m.bankName === 'พร้อมเพย์' ? 'selected' : ''}>พร้อมเพย์</option>
+          <option ${m.bankName === 'ธ.กรุงเทพ' ? 'selected' : ''}>ธ.กรุงเทพ</option>
+          <option ${m.bankName === 'ธ.กสิกรไทย' ? 'selected' : ''}>ธ.กสิกรไทย</option>
+          <option ${m.bankName === 'ธ.ไทยพาณิชย์' ? 'selected' : ''}>ธ.ไทยพาณิชย์</option>
+          <option ${m.bankName === 'ธ.กรุงไทย' ? 'selected' : ''}>ธ.กรุงไทย</option>
+          <option ${m.bankName === 'ธ.ทหารไทยธนชาต' ? 'selected' : ''}>ธ.ทหารไทยธนชาต</option>
+          <option ${m.bankName === 'ธ.ออมสิน' ? 'selected' : ''}>ธ.ออมสิน</option>
+          <option ${m.bankName === 'ธ.อาคารสงเคราะห์' ? 'selected' : ''}>ธ.อาคารสงเคราะห์</option>
+          <option ${m.bankName === 'ธ.เกียรตินาคินภัทร' ? 'selected' : ''}>ธ.เกียรตินาคินภัทร</option>
+          <option ${m.bankName === 'ธ.ซีไอเอ็มบี ไทย' ? 'selected' : ''}>ธ.ซีไอเอ็มบี ไทย</option>
+          <option ${m.bankName === 'ธ.ยูโอบี' ? 'selected' : ''}>ธ.ยูโอบี</option>
+          <option ${m.bankName === 'อื่นๆ' ? 'selected' : ''}>อื่นๆ</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>เลขบัญชี</label>
+        <input id="editMemberAccount" value="${escHtml(m.bankAccount || '')}" placeholder="xxx-x-xxxxx-x">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveEditMember('${id}')">บันทึก</button>
+    </div>
+  `);
+}
+window.showEditMemberModal = showEditMemberModal;
+
+function saveEditMember(id) {
+  const t = currentTrip(); if (!t) return;
+  const m = t.members.find(x => x.id === id);
+  if (!m) return;
+  m.avatar = getPickedAvatar();
+  m.color = getPickedColor();
+  m.bankName = document.getElementById('editMemberBank').value;
+  m.bankAccount = document.getElementById('editMemberAccount').value.trim();
+  saveData(); closeModal(); renderTabContent(t);
+}
+window.saveEditMember = saveEditMember;
+
+function deleteMember(id) {
+  if (!confirm('แน่ใจว่าจะลบสมาชิกนี้?')) return;
+  const t = currentTrip(); if (!t) return;
+  t.members = t.members.filter(m => m.id !== id);
+  saveData(); renderTabContent(t);
+}
+window.deleteMember = deleteMember;
+
+// ═══════════════════════════════════════════════
+//  EXPENSES
+// ═══════════════════════════════════════════════
+function renderExpenses(t) {
+  const members = t.members || [];
+  const expenses = t.expenses || [];
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+
+  // Summary per member
+  let perMember = {};
+  members.forEach(m => { perMember[m.id] = { name: m.name, paid: 0, share: 0 }; });
+  expenses.forEach(e => {
+    if (perMember[e.paidBy]) perMember[e.paidBy].paid += e.amount;
+    const splitMembers = e.splitMembers || members.map(m => m.id);
+    const numSplit = splitMembers.length;
+    if (numSplit === 0) return;
+    if (e.splitType === 'custom') {
+      members.forEach(m => {
+        const share = (e.customSplits && e.customSplits[m.id]) || 0;
+        if (perMember[m.id]) perMember[m.id].share += share;
+      });
+    } else {
+      const share = e.amount / numSplit;
+      splitMembers.forEach(id => { if (perMember[id]) perMember[id].share += share; });
+    }
+  });
+
+  const catColors = { food: 'cat-food', transport: 'cat-transport', accommodation: 'cat-accommodation', activity: 'cat-activity', shopping: 'cat-shopping', other: 'cat-other' };
+  const catLabels = { food: 'อาหาร', transport: 'เดินทาง', accommodation: 'ที่พัก', activity: 'กิจกรรม', shopping: 'ช้อปปิ้ง', other: 'อื่นๆ' };
+
+  return `
+    <div class="summary-grid">
+      <div class="summary-card pink"><div class="num">฿${total.toLocaleString()}</div><div class="label">รวมทั้งหมด</div></div>
+      <div class="summary-card lavender"><div class="num">${expenses.length}</div><div class="label">รายการ</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>💸 ค่าใช้จ่าย</h3>
+        <button class="btn btn-primary btn-sm" onclick="showAddExpenseModal()">+ เพิ่มรายการ</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line-light);">
+        ${Object.entries(catLabels).map(([k,v]) => `<span style="font-size:0.75rem;padding:4px 10px;border-radius:20px;background:var(--line-light);">${v}</span>`).join('')}
+      </div>
+      ${expenses.length === 0 ? '<div class="empty-state-text"><span class="icon">💸</span>ยังไม่มีค่าใช้จ่าย</div>' :
+        expenses.map((e, idx) => {
+          const payer = members.find(m => m.id === e.paidBy);
+          return `
+            <div class="expense-item">
+              <div class="cat-icon ${catColors[e.category] || 'cat-other'}"><span class="material-icons-outlined">${catIcon(e.category)}</span></div>
+              <div class="exp-info">
+                <div class="exp-desc">${escHtml(e.description)}</div>
+                <div class="exp-detail">${payer ? memberLabel(payer, 'sm') : '?'} · ${splitMemberStr(e, members)} · ${e.splitType === 'custom' ? 'หารไม่เท่า' : 'หารเท่า'} · ${catLabels[e.category] || 'อื่นๆ'}</div>
+              </div>
+              <div class="exp-amount">฿${e.amount.toLocaleString()}</div>
+              <button class="exp-del material-icons-outlined" onclick="deleteExpense(${idx})" title="ลบ">close</button>
+            </div>
+          `;
+      }).join('')}
+    </div>
+
+  `;
+}
+
+function showAddExpenseModal() {
+  const t = currentTrip(); if (!t) return;
+  const members = t.members || [];
+  if (members.length === 0) { showToast('เพิ่มสมาชิกก่อน!'); return; }
+
+  showModal(`
+    <h3>💸 เพิ่มค่าใช้จ่าย</h3>
+    <div class="form-group">
+      <label>รายละเอียด</label>
+      <input id="expDesc" placeholder="เช่น ค่าที่พัก" autofocus>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>จำนวนเงิน (บาท)</label>
+        <input id="expAmount" type="number" min="0" step="1" placeholder="0" oninput="updateSplitTotal()">
+      </div>
+      <div class="form-group">
+        <label>หมวดหมู่</label>
+        <select id="expCategory">
+          <option value="food">🍽️ อาหาร</option>
+          <option value="transport">🚗 เดินทาง</option>
+          <option value="accommodation">🏨 ที่พัก</option>
+          <option value="activity">🎮 กิจกรรม</option>
+          <option value="shopping">🛍️ ช้อปปิ้ง</option>
+          <option value="other">📦 อื่นๆ</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>จ่ายโดย</label>
+      <select id="expPaidBy">
+        ${members.map(m => `<option value="${m.id}">${memberAvatar(m)} ${escHtml(m.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>วิธีหาร</label>
+      <div class="split-toggle" id="splitToggle">
+        <button class="btn active" data-split="equal" onclick="setSplitType('equal')">หารเท่ากัน</button>
+        <button class="btn" data-split="custom" onclick="setSplitType('custom')">หารไม่เท่า</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>เลือกผู้ร่วมหาร</label>
+      <div id="memberSelect" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+        ${members.map(m => `
+          <label style="display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;font-size:0.85rem;">
+            <input type="checkbox" class="split-member-cb" data-id="${m.id}" checked onchange="updateSplitUI()" style="accent-color:var(--pink);width:15px;height:15px;">
+            ${memberHtml(m, 'sm')}
+            <span>${escHtml(m.name)}</span>
+          </label>
+        `).join('')}
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-light);margin-top:4px;" id="splitMemberCount">เลือกทั้งหมด ${members.length} คน</div>
+    </div>
+    <div class="custom-split" id="customSplit">
+      ${members.map(m => `
+        <div class="custom-split-row" data-id="${m.id}">
+          <label style="display:flex;align-items:center;gap:6px;">${memberHtml(m, 'sm')} ${escHtml(m.name)}</label>
+          <input type="number" min="0" step="1" class="split-input" data-id="${m.id}" placeholder="0" oninput="updateSplitTotal()">
+        </div>
+      `).join('')}
+      <div style="text-align:right;font-size:0.85rem;color:var(--text-light);margin-top:4px;">
+        รวม: <span id="splitTotal">0</span> / <span id="splitTarget">0</span> บาท
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="addExpense()">เพิ่ม</button>
+    </div>
+  `);
+  window._splitType = 'equal';
+  updateSplitUI();
+}
+window.showAddExpenseModal = showAddExpenseModal;
+
+function setSplitType(type) {
+  window._splitType = type;
+  document.querySelectorAll('#splitToggle .btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.split === type);
+  });
+  document.getElementById('customSplit').classList.toggle('open', type === 'custom');
+  updateSplitUI();
+  if (type === 'custom') updateSplitTotal();
+}
+window.setSplitType = setSplitType;
+
+function updateSplitUI() {
+  const cbs = document.querySelectorAll('.split-member-cb');
+  const checked = Array.from(cbs).filter(cb => cb.checked);
+  const count = checked.length;
+  const total = cbs.length;
+  const el = document.getElementById('splitMemberCount');
+  if (el) el.textContent = count === total ? `เลือกทั้งหมด ${total} คน` : `เลือก ${count} คน จาก ${total} คน`;
+  document.querySelectorAll('.custom-split-row').forEach(row => {
+    const id = row.dataset.id;
+    const checked = Array.from(cbs).find(cb => cb.dataset.id === id)?.checked;
+    row.style.display = !checked ? 'none' : '';
+    if (!checked) {
+      const inp = row.querySelector('.split-input');
+      if (inp) inp.value = 0;
+    }
+  });
+  if (window._splitType === 'custom') updateSplitTotal();
+}
+window.updateSplitUI = updateSplitUI;
+
+function updateSplitTotal() {
+  const target = parseFloat(document.getElementById('expAmount')?.value) || 0;
+  document.getElementById('splitTarget').textContent = target.toLocaleString();
+  const cbs = document.querySelectorAll('.split-member-cb');
+  const checkedIds = Array.from(cbs).filter(cb => cb.checked).map(cb => cb.dataset.id);
+  const inputs = document.querySelectorAll('.split-input');
+  let total = 0;
+  inputs.forEach(inp => {
+    if (checkedIds.includes(inp.dataset.id)) {
+      total += parseFloat(inp.value) || 0;
+    }
+  });
+  document.getElementById('splitTotal').textContent = total.toLocaleString();
+}
+window.updateSplitTotal = updateSplitTotal;
+
+function addExpense() {
+  const t = currentTrip(); if (!t) return;
+  const desc = document.getElementById('expDesc').value.trim();
+  const amount = parseFloat(document.getElementById('expAmount').value);
+  if (!desc) { showToast('กรุณาใส่รายละเอียด'); return; }
+  if (!amount || amount <= 0) { showToast('กรุณาใส่จำนวนเงิน'); return; }
+  const paidBy = document.getElementById('expPaidBy').value;
+  const category = document.getElementById('expCategory').value;
+
+  const cbs = document.querySelectorAll('.split-member-cb');
+  const splitMembers = Array.from(cbs).filter(cb => cb.checked).map(cb => cb.dataset.id);
+  if (splitMembers.length === 0) { showToast('เลือกผู้ร่วมหารอย่างน้อย 1 คน'); return; }
+
+  const expense = { id: genId(), description: desc, amount, paidBy, category, date: Date.now(), splitType: 'equal', customSplits: {}, splitMembers };
+
+  if (window._splitType === 'custom') {
+    expense.splitType = 'custom';
+    let totalCustom = 0;
+    document.querySelectorAll('.split-input').forEach(inp => {
+      const val = splitMembers.includes(inp.dataset.id) ? (parseFloat(inp.value) || 0) : 0;
+      expense.customSplits[inp.dataset.id] = val;
+      totalCustom += val;
+    });
+    if (Math.abs(totalCustom - amount) > 1) { showToast('ยอด split รวมไม่เท่ากับยอดเงิน'); return; }
+  }
+
+  t.expenses.push(expense);
+  saveData(); closeModal(); renderTabContent(t);
+}
+window.addExpense = addExpense;
+
+function togglePersonDetail(id) {
+  const detail = document.getElementById('detail_' + id);
+  const arrow = document.getElementById('arrow_' + id);
+  if (!detail) return;
+  const isOpen = detail.style.display !== 'none';
+  detail.style.display = isOpen ? 'none' : 'block';
+  if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+
+function toggleAllPersonDetails() {
+  const t = currentTrip(); if (!t) return;
+  const members = t.members || [];
+  const first = document.getElementById('detail_' + (members[0]?.id || ''));
+  if (!first) return;
+  const allOpen = first.style.display === 'block';
+  const btn = document.getElementById('toggleAllBtn');
+  members.forEach(m => {
+    const detail = document.getElementById('detail_' + m.id);
+    const arrow = document.getElementById('arrow_' + m.id);
+    if (detail) detail.style.display = allOpen ? 'none' : 'block';
+    if (arrow) arrow.style.transform = allOpen ? '' : 'rotate(90deg)';
+  });
+  if (btn) btn.textContent = allOpen ? 'ขยายทั้งหมด' : 'ยุบทั้งหมด';
+}
+window.togglePersonDetail = togglePersonDetail;
+window.toggleAllPersonDetails = toggleAllPersonDetails;
+
+function deleteExpense(idx) {
+  if (!confirm('ลบรายการนี้?')) return;
+  const t = currentTrip(); if (!t) return;
+  t.expenses.splice(idx, 1);
+  saveData(); renderTabContent(t);
+}
+window.deleteExpense = deleteExpense;
+
+// ═══════════════════════════════════════════════
+//  SETTLEMENT
+// ═══════════════════════════════════════════════
+function renderSettlement(t) {
+  const members = t.members || [];
+  const expenses = t.expenses || [];
+  if (members.length === 0) return '<div class="empty-state-text"><span class="icon">👥</span>ยังไม่มีสมาชิก</div>';
+
+  // Calculate net balances
+  const balance = {};
+  members.forEach(m => { balance[m.id] = { ...m, net: 0 }; });
+  expenses.forEach(e => {
+    if (!balance[e.paidBy]) return;
+    balance[e.paidBy].net += e.amount;
+    const splitMembers = e.splitMembers || members.map(m => m.id);
+    const numSplit = splitMembers.length;
+    if (e.splitType === 'custom') {
+      Object.entries(e.customSplits || {}).forEach(([mid, amt]) => {
+        if (balance[mid]) balance[mid].net -= amt;
+      });
+    } else {
+      if (numSplit === 0) return;
+      const share = e.amount / numSplit;
+      splitMembers.forEach(id => { if (balance[id]) balance[id].net -= share; });
+    }
+  });
+
+  // Round to int
+  Object.values(balance).forEach(b => { b.net = Math.round(b.net); });
+
+  const creditors = Object.values(balance).filter(b => b.net > 0).sort((a,b) => b.net - a.net);
+  const debtors = Object.values(balance).filter(b => b.net < 0).sort((a,b) => a.net - b.net);
+
+  // Greedy transfer matching
+  let transfers = [];
+  let cIdx = 0, dIdx = 0;
+  let cList = creditors.map(c => ({...c, remaining: c.net}));
+  let dList = debtors.map(d => ({...d, remaining: -d.net}));
+  while (cIdx < cList.length && dIdx < dList.length) {
+    const amount = Math.min(cList[cIdx].remaining, dList[dIdx].remaining);
+    if (amount > 0) {
+      const from = dList[dIdx], to = cList[cIdx];
+      transfers.push({ from: from.name, to: to.name, amount, fromBank: from.bankName, fromAccount: from.bankAccount, toBank: to.bankName, toAccount: to.bankAccount, fromObj: from, toObj: to });
+    }
+    cList[cIdx].remaining -= amount;
+    dList[dIdx].remaining -= amount;
+    if (cList[cIdx].remaining === 0) cIdx++;
+    if (dList[dIdx].remaining === 0) dIdx++;
+  }
+
+  const totalExp = expenses.reduce((s, e) => s + e.amount, 0);
+
+  // Per-member breakdown
+  let perMember = {};
+  members.forEach(m => { perMember[m.id] = { name: m.name, paid: 0, share: 0 }; });
+  expenses.forEach(e => {
+    if (perMember[e.paidBy]) perMember[e.paidBy].paid += e.amount;
+    const splitMembers = e.splitMembers || members.map(m => m.id);
+    const numSplit = splitMembers.length;
+    if (numSplit === 0) return;
+    if (e.splitType === 'custom') {
+      members.forEach(m => {
+        const share = (e.customSplits && e.customSplits[m.id]) || 0;
+        if (perMember[m.id]) perMember[m.id].share += share;
+      });
+    } else {
+      const share = e.amount / numSplit;
+      splitMembers.forEach(id => { if (perMember[id]) perMember[id].share += share; });
+    }
+  });
+
+  return `
+    <div class="summary-grid">
+      <div class="summary-card pink"><div class="num">฿${totalExp.toLocaleString()}</div><div class="label">ค่าใช้จ่ายรวม</div></div>
+      <div class="summary-card lavender"><div class="num">฿${(totalExp / members.length).toLocaleString(undefined,{maximumFractionDigits:0})}</div><div class="label">เฉลี่ยต่อคน</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>🔄 ใครต้องจ่ายใคร</h3>
+        ${transfers.length === 0 ? '<span class="badge">จบแล้ว!</span>' : ''}
+      </div>
+      ${transfers.length === 0 ? '<div class="empty-state-text"><span class="icon">🎉</span>ไม่มีรายการที่ต้องเคลียร์!<br>(หรือยังไม่มีค่าใช้จ่าย)</div>' :
+        transfers.map(tr => `
+          <div class="settle-transfer">
+            <span style="font-weight:500;display:flex;align-items:center;gap:6px;">
+              ${memberHtml(tr.fromObj, 'sm')} ${escHtml(tr.from)}
+            </span>
+            <span class="material-icons-outlined arrow" style="font-size:18px;">arrow_forward</span>
+            <span style="font-weight:500;display:flex;align-items:center;gap:6px;">
+              ${memberHtml(tr.toObj, 'sm')} ${escHtml(tr.to)}
+              ${tr.toAccount ? `<span style="font-size:0.7rem;color:var(--text-light);font-weight:400;display:block;line-height:1.2;">${escHtml(tr.toBank || '')} ${escHtml(tr.toAccount)} <span class="material-icons-outlined" onclick="event.stopPropagation();navigator.clipboard.writeText('${escHtml(tr.toAccount)}');showToast('คัดลอกแล้ว ✅')" style="font-size:12px;cursor:pointer;vertical-align:middle;color:var(--pink-deep);">content_copy</span></span>` : ''}
+            </span>
+            <span class="amount">฿${tr.amount.toLocaleString()}</span>
+          </div>
+        `).join('')}
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>📊 รายละเอียดค่าใช้จ่ายรายบุคคล</h3>
+        <button class="btn btn-sm btn-ghost" onclick="toggleAllPersonDetails()" id="toggleAllBtn">ขยายทั้งหมด</button>
+      </div>
+      ${members.map(m => {
+        const p = perMember[m.id] || { paid: 0, share: 0 };
+        const bal = p.paid - p.share;
+        const paidExps = expenses.filter(e => e.paidBy === m.id);
+        const oweExps = expenses.filter(e => {
+          const sm = e.splitMembers || members.map(x => x.id);
+          return sm.includes(m.id);
+        });
+        return `
+          <div style="border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;">
+            <div onclick="togglePersonDetail('${m.id}')" style="display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;background:var(--surface);transition:background 0.15s;user-select:none;" onmouseover="this.style.background='var(--line-light)'" onmouseout="this.style.background='var(--surface)'">
+              <span class="material-icons-outlined" id="arrow_${m.id}" style="font-size:18px;color:var(--text-light);transition:transform 0.2s;">chevron_right</span>
+              <span style="font-weight:500;flex:1;display:flex;align-items:center;gap:8px;">${memberHtml(m, 'sm')} ${escHtml(m.name)}</span>
+              <span style="font-size:0.8rem;color:var(--text-light);text-align:right;line-height:1.4;">
+                <div>จ่ายไป ฿${p.paid.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+                <div>ต้องจ่าย ฿${p.share.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+              </span>
+              <span class="bal ${bal >= 0 ? 'pos' : 'neg'}" style="font-weight:700;font-size:1rem;min-width:70px;text-align:right;">${bal >= 0 ? '+' : ''}฿${bal.toLocaleString(undefined,{maximumFractionDigits:0})}</span>
+            </div>
+            <div id="detail_${m.id}" style="display:none;border-top:1px solid var(--line-light);padding:12px 16px;background:var(--bg);">
+              ${paidExps.length > 0 ? `
+                <div style="font-weight:600;font-size:0.85rem;color:var(--pink-deep);margin-bottom:6px;">💸 จ่ายไป</div>
+                ${paidExps.map(e => {
+                  const catLabel = {food:'อาหาร',transport:'เดินทาง',accommodation:'ที่พัก',activity:'กิจกรรม',shopping:'ช้อปปิ้ง',other:'อื่นๆ'};
+                  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.85rem;border-bottom:1px solid var(--line-light);">
+                    <span>${escHtml(e.description)} <span style="color:var(--text-light);font-size:0.75rem;">(${catLabel[e.category]||'อื่นๆ'})</span></span>
+                    <span style="font-weight:600;color:#2d8a6e;">+฿${e.amount.toLocaleString()}</span>
+                  </div>`;
+                }).join('')}
+              ` : '<div style="font-size:0.8rem;color:var(--text-dim);padding:4px 0;">ไม่มีรายการที่จ่าย</div>'}
+              ${oweExps.length > 0 ? `
+                <div style="font-weight:600;font-size:0.85rem;color:#d68a4a;margin:10px 0 6px;">📋 ต้องจ่าย (ส่วนแบ่ง)</div>
+                ${oweExps.map(e => {
+                  const sm = e.splitMembers || members.map(x => x.id);
+                  const numSplit = sm.length;
+                  let shareAmount;
+                  if (e.splitType === 'custom') {
+                    shareAmount = (e.customSplits && e.customSplits[m.id]) || 0;
+                  } else {
+                    shareAmount = e.amount / numSplit;
+                  }
+                  const paidByMember = members.find(x => x.id === e.paidBy);
+                  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.85rem;border-bottom:1px solid var(--line-light);">
+                    <span>${escHtml(e.description)} <span style="color:var(--text-light);font-size:0.75rem;">(${paidByMember ? memberAvatar(paidByMember)+' '+escHtml(paidByMember.name) : '?'})</span></span>
+                    <span style="font-weight:600;color:#d68a4a;">-฿${Math.round(shareAmount).toLocaleString()}</span>
+                  </div>`;
+                }).join('')}
+              ` : '<div style="font-size:0.8rem;color:var(--text-dim);padding:4px 0;">ไม่มีรายการที่ต้องแบ่ง</div>'}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+//  DESTINATIONS
+// ═══════════════════════════════════════════════
+function renderDestinations(t) {
+  const dests = t.destinations || [];
+  return `
+    <div class="card" style="padding:0;border-radius:var(--radius);">
+      <div id="map" style="border-radius:var(--radius);"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h3>📍 สถานที่ (${dests.length} แห่ง)</h3>
+        <button class="btn btn-primary btn-sm" onclick="showAddDestModal()">+ เพิ่มสถานที่</button>
+      </div>
+      ${dests.length === 0 ? '<div class="empty-state-text"><span class="icon">🗺️</span>ยังไม่มีสถานที่<br>เพิ่มจุดหมายในการเดินทาง!</div>' :
+        dests.map((d, idx) => `
+          <div class="dest-item" onclick="flyToDest(${idx})">
+            <div class="dest-icon"><span class="material-icons-outlined">location_on</span></div>
+            <div class="dest-info">
+              <div class="dest-name">${escHtml(d.name)}</div>
+              <div class="dest-meta">${d.lat ? d.lat.toFixed(4)+', '+d.lng.toFixed(4) : ''}${d.notes ? ' · '+escHtml(d.notes) : ''}</div>
+            </div>
+            <button class="dest-del material-icons-outlined" onclick="event.stopPropagation();deleteDest(${idx})">close</button>
+          </div>
+        `).join('')}
+    </div>
+  `;
+}
+
+function initMap(t) {
+  const container = document.getElementById('map');
+  if (!container) return;
+  if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+  const dests = t.destinations || [];
+  mapInstance = L.map('map').setView([13.736717, 100.523186], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
+  }).addTo(mapInstance);
+  mapMarkers = [];
+  if (dests.length === 0) return;
+  const bounds = [];
+  dests.forEach(d => {
+    if (d.lat && d.lng) {
+      const marker = L.marker([d.lat, d.lng]).addTo(mapInstance)
+        .bindPopup(`<b>${escHtml(d.name)}</b>${d.notes ? '<br>'+escHtml(d.notes) : ''}`);
+      mapMarkers.push(marker);
+      bounds.push([d.lat, d.lng]);
+    }
+  });
+  if (bounds.length > 0) mapInstance.fitBounds(bounds, { padding: [40,40] });
+}
+
+function flyToDest(idx) {
+  const t = currentTrip(); if (!t) return;
+  const d = (t.destinations || [])[idx];
+  if (!d || !d.lat || !d.lng || !mapInstance) return;
+  if (window.innerWidth <= 768) {
+    document.querySelector('[data-tab="destinations"]').scrollIntoView({ behavior: 'smooth' });
+  }
+  mapInstance.setView([d.lat, d.lng], 15);
+  if (mapMarkers[idx]) mapMarkers[idx].openPopup();
+}
+
+let _destSearchTimer = null;
+
+function showAddDestModal() {
+  showModal(`
+    <h3>📍 เพิ่มสถานที่</h3>
+    <div class="form-group search-wrap">
+      <label>ชื่อสถานที่</label>
+      <input id="destName" placeholder="พิมพ์ชื่อสถานที่..." autofocus oninput="onDestSearch()" autocomplete="off">
+      <div class="search-results" id="destResults" style="display:none;"></div>
+    </div>
+    <div class="search-status" id="destSearchStatus"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>ละติจูด</label>
+        <input id="destLat" type="number" step="any" placeholder="หรือวางจาก Google Maps">
+      </div>
+      <div class="form-group">
+        <label>ลองจิจูด</label>
+        <input id="destLng" type="number" step="any" placeholder="หรือวางจาก Google Maps">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>โน้ต (ไม่บังคับ)</label>
+      <input id="destNotes" placeholder="เช่น เปิด 8 โมง เช็คตารางก่อน">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <button class="btn btn-ghost btn-sm" onclick="openGmaps()" style="flex:1;">
+        🌐 เปิด Google Maps
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="pasteFromClipboard()" style="flex:1;">
+        📋 วางพิกัด
+      </button>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="addDest()">เพิ่ม</button>
+    </div>
+  `);
+}
+window.showAddDestModal = showAddDestModal;
+
+function openGmaps() {
+  const q = document.getElementById('destName').value.trim() || 'ประเทศไทย';
+  window.open(`https://www.google.com/maps/search/${encodeURIComponent(q)}`, '_blank');
+}
+window.openGmaps = openGmaps;
+
+function pasteFromClipboard() {
+  navigator.clipboard.readText().then(text => {
+    const nums = text.match(/-?\d+\.\d+/g);
+    if (nums && nums.length >= 2) {
+      document.getElementById('destLat').value = parseFloat(nums[0]);
+      document.getElementById('destLng').value = parseFloat(nums[1]);
+      showToast(`✅ พิกัด: ${parseFloat(nums[0]).toFixed(4)}, ${parseFloat(nums[1]).toFixed(4)}`);
+    } else {
+      showToast('⚠️ ไม่พบพิกัดในคลิปบอร์ด เปิด Google Maps > คลิกขวาที่จุด > คัดลอกพิกัด');
+    }
+  }).catch(() => {
+    showToast('⚠️ ไม่สามารถอ่านคลิปบอร์ด วางพิกัดเองได้เลย');
+  });
+}
+window.pasteFromClipboard = pasteFromClipboard;
+
+function onDestSearch() {
+  clearTimeout(_destSearchTimer);
+  const q = document.getElementById('destName').value.trim();
+  if (q.length < 2) {
+    document.getElementById('destResults').style.display = 'none';
+    document.getElementById('destSearchStatus').textContent = '';
+    document.getElementById('destLat').value = '';
+    document.getElementById('destLng').value = '';
+    return;
+  }
+  document.getElementById('destSearchStatus').textContent = '⏳ กำลังค้นหา...';
+  _destSearchTimer = setTimeout(() => doDestSearch(q), 400);
+}
+window.onDestSearch = onDestSearch;
+
+function doDestSearch(q) {
+  const status = document.getElementById('destSearchStatus');
+  status.textContent = '⏳ กำลังค้นหา...';
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=8&dedupe=1&addressdetails=1&accept-language=th`;
+  fetch(url, { headers: { 'User-Agent': 'TravelBuddyApp/1.0' } })
+    .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    .then(results => {
+      const list = document.getElementById('destResults');
+      if (results.length === 0) {
+        list.style.display = 'none';
+        status.innerHTML = '❌ ไม่พบ &nbsp; <a href="#" onclick="openGmaps();return false;" style="color:var(--text);">เปิด Google Maps</a> เพื่อค้นหา';
+        return;
+      }
+      list.innerHTML = results.map(r => {
+        const name = r.address ? (r.address.tourism || r.address.attraction || r.address.hotel || r.address.restaurant || r.address.cafe || r.address.name || r.address.road || r.display_name.split(',')[0]) : r.display_name.split(',')[0];
+        const street = r.address ? [r.address.road, r.address.suburb, r.address.city, r.address.state, r.address.country].filter(Boolean).join(', ') : r.display_name.split(',').slice(1,4).join(',').trim();
+        const cat = r.type === 'hotel' ? '🏨' : r.type === 'restaurant' ? '🍽️' : r.type === 'cafe' ? '☕' : r.type === 'attraction' || r.type === 'tourism' ? '🎯' : r.type === 'museum' ? '🏛️' : r.type === 'park' ? '🌳' : r.type === 'beach' ? '🏖️' : '📍';
+        const safe = name.trim().replace(/'/g, "\\'");
+        return `<div class="sr-item" onclick="pickDestResult(${r.lat}, ${r.lon}, '${safe}')">
+          <span>${cat}</span>
+          <div><div class="sr-name">${escHtml(name.trim())}</div><div class="sr-addr">${escHtml(street)}</div></div>
+        </div>`;
+      }).join('');
+      list.style.display = 'block';
+      status.textContent = `พบ ${results.length} แห่ง`;
+    })
+    .catch(() => {
+      document.getElementById('destResults').style.display = 'none';
+      document.getElementById('destSearchStatus').innerHTML = '⚠️ ค้นหาผิดพลาด &nbsp; <a href="#" onclick="openGmaps();return false;" style="color:var(--text);">เปิด Google Maps</a>';
+    });
+}
+
+function pickDestResult(lat, lng, name) {
+  document.getElementById('destLat').value = lat;
+  document.getElementById('destLng').value = lng;
+  document.getElementById('destName').value = name;
+  document.getElementById('destResults').style.display = 'none';
+  document.getElementById('destSearchStatus').textContent = `✅ ${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`;
+}
+window.pickDestResult = pickDestResult;
+
+function addDest() {
+  const t = currentTrip(); if (!t) return;
+  const name = document.getElementById('destName').value.trim();
+  if (!name) { showToast('กรุณาใส่ชื่อสถานที่'); return; }
+  const lat = parseFloat(document.getElementById('destLat').value) || null;
+  const lng = parseFloat(document.getElementById('destLng').value) || null;
+  const notes = document.getElementById('destNotes').value.trim();
+  (t.destinations || (t.destinations = [])).push({
+    id: genId(), name, lat, lng, notes, date: Date.now()
+  });
+  saveData(); closeModal(); renderTabContent(t);
+}
+window.addDest = addDest;
+
+function deleteDest(idx) {
+  if (!confirm('ลบสถานที่นี้?')) return;
+  const t = currentTrip(); if (!t) return;
+  (t.destinations || []).splice(idx, 1);
+  saveData(); renderTabContent(t);
+}
+window.deleteDest = deleteDest;
+
+// ═══════════════════════════════════════════════
+//  PACKING
+// ═══════════════════════════════════════════════
+window._packFilter = null;
+
+function renderPacking(t) {
+  const members = t.members || [];
+  if (members.length === 0) return '<div class="empty-state-text"><span class="icon">👥</span>เพิ่มสมาชิกก่อนแพ็คกระเป๋า</div>';
+  if (!window._packFilter || !members.find(m => m.id === window._packFilter)) {
+    window._packFilter = members[0].id;
+  }
+  const allItems = t.packingItems || [];
+  const filtered = allItems.filter(i => i.memberId === window._packFilter);
+  const total = filtered.length;
+  const done = filtered.filter(i => i.checked).length;
+  const pct = total > 0 ? Math.round(done/total*100) : 0;
+
+  return `
+    <div class="card">
+      <div class="card-header">
+        <h3>🎒 กระเป๋าเดินทาง</h3>
+        <span class="badge">${done}/${total}</span>
+      </div>
+      ${total > 0 ? `
+      <div style="height:6px;background:var(--line-light);border-radius:4px;margin-bottom:16px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:var(--mint);border-radius:4px;transition:width 0.3s;"></div>
+      </div>` : ''}
+      <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;">
+        ${members.map(m => `
+          <button class="btn btn-sm ${window._packFilter === m.id ? 'btn-primary' : 'btn-ghost'}" onclick="setPackFilter('${m.id}')" style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+            ${memberAvatar(m)} ${escHtml(m.name)}
+          </button>
+        `).join('')}
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input id="packInput" placeholder="เพิ่มของที่จะเอาไป..." style="flex:1;padding:10px 14px;border:1px solid var(--line);border-radius:10px;font-size:0.85rem;" onkeydown="if(event.key==='Enter'){event.preventDefault();addPackItem()}">
+        <button class="btn btn-primary" onclick="addPackItem()">เพิ่ม</button>
+      </div>
+      ${filtered.length === 0 ? '<div class="empty-state-text"><span class="icon">🎒</span>ยังไม่มีรายการของ ' + escHtml(members.find(m => m.id === window._packFilter)?.name || '') + '</div>' :
+        filtered.map(item => `
+          <div class="pack-item ${item.checked ? 'checked' : ''}">
+            <label>
+              <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="togglePackById('${item.id}')">
+              ${escHtml(item.text)}
+            </label>
+            <div style="display:flex;gap:2px;">
+              <button class="pack-del material-icons-outlined" onclick="showEditPackModal('${item.id}')" title="แก้ไข" style="font-size:16px;">edit</button>
+              <button class="pack-del material-icons-outlined" onclick="deletePackById('${item.id}')" title="ลบ">close</button>
+            </div>
+          </div>
+        `).join('')}
+    </div>
+  `;
+}
+
+function setPackFilter(id) {
+  window._packFilter = id;
+  renderTabContent(currentTrip());
+}
+window.setPackFilter = setPackFilter;
+
+function addPackItem() {
+  const t = currentTrip(); if (!t) return;
+  const input = document.getElementById('packInput');
+  const text = input.value.trim();
+  if (!text) return;
+  const memberId = window._packFilter;
+  (t.packingItems || (t.packingItems = [])).push({ id: genId(), text, checked: false, memberId });
+  input.value = '';
+  saveData(); renderTabContent(t);
+}
+window.addPackItem = addPackItem;
+
+function showEditPackModal(id) {
+  const t = currentTrip(); if (!t) return;
+  const item = (t.packingItems || []).find(i => i.id === id);
+  if (!item) return;
+  const members = t.members || [];
+  showModal(`
+    <h3>✏️ แก้ไขรายการ</h3>
+    <div class="form-group">
+      <label>รายการ</label>
+      <input id="editPackText" value="${escHtml(item.text)}" autofocus>
+    </div>
+    <div class="form-group">
+      <label>เจ้าของ</label>
+      <select id="editPackOwner">
+        ${members.map(m => `<option value="${m.id}" ${m.id === item.memberId ? 'selected' : ''}>${memberAvatar(m)} ${escHtml(m.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveEditPack('${id}')">บันทึก</button>
+    </div>
+  `);
+}
+window.showEditPackModal = showEditPackModal;
+
+function saveEditPack(id) {
+  const t = currentTrip(); if (!t) return;
+  const item = (t.packingItems || []).find(i => i.id === id);
+  if (!item) return;
+  const text = document.getElementById('editPackText').value.trim();
+  if (!text) { showToast('กรุณาใส่ข้อความ'); return; }
+  item.text = text;
+  item.memberId = document.getElementById('editPackOwner').value;
+  saveData(); closeModal(); renderTabContent(t);
+}
+window.saveEditPack = saveEditPack;
+
+function togglePackById(id) {
+  const t = currentTrip(); if (!t) return;
+  const item = (t.packingItems || []).find(i => i.id === id);
+  if (item) { item.checked = !item.checked; saveData(); renderTabContent(t); }
+}
+window.togglePackById = togglePackById;
+
+function deletePackById(id) {
+  if (!confirm('ลบรายการนี้?')) return;
+  const t = currentTrip(); if (!t) return;
+  const idx = (t.packingItems || []).findIndex(i => i.id === id);
+  if (idx !== -1) { t.packingItems.splice(idx, 1); saveData(); renderTabContent(t); }
+}
+window.deletePackById = deletePackById;
+
+// ═══════════════════════════════════════════════
+//  ITINERARY
+// ═══════════════════════════════════════════════
+function fmtDate(d) {
+  if (!d) return '';
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const days = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+  const p = d.split('-');
+  const dt = new Date(+p[0], +p[1]-1, +p[2]);
+  return `${days[dt.getDay()]} ${+p[2]} ${months[+p[1]-1]} ${+p[0]}`;
+}
+
+function renderItinerary(t) {
+  const items = t.itinerary || [];
+  const dates = [...new Set(items.map(i => i.date || ''))].filter(Boolean).sort();
+  const oldDays = [...new Set(items.filter(i => !i.date).map(i => i.day))].sort((a,b) => a-b);
+  return `
+    <div class="card">
+      <div class="card-header">
+        <h3>📅 กำหนดการ</h3>
+        <button class="btn btn-primary btn-sm" onclick="showAddItinModal()">+ เพิ่มกิจกรรม</button>
+      </div>
+      ${items.length === 0 ? '<div class="empty-state-text"><span class="icon">📅</span>ยังไม่มีกำหนดการ<br>วางแผนกิจกรรมกันเลย!</div>' : `
+        ${dates.map(date => `
+          <div class="itin-day">
+            <h4><span class="material-icons-outlined" style="font-size:16px;">calendar_today</span> ${fmtDate(date)}</h4>
+            ${items.filter(i => i.date === date).sort((a,b) => (a.time||'').localeCompare(b.time||'')).map(item => {
+              const realIdx = items.indexOf(item);
+              return `
+                <div class="itin-item">
+                  <div class="itin-time">${item.time ? escHtml(item.time) : ''}</div>
+                  <div class="itin-info">
+                    <div class="itin-activity">${escHtml(item.activity)}</div>
+                    ${item.location ? `<div class="itin-loc">📍 ${escHtml(item.location)}</div>` : ''}
+                    ${item.notes ? `<div style="font-size:0.75rem;color:var(--text-light);">${escHtml(item.notes)}</div>` : ''}
+                  </div>
+                  <button class="itin-del material-icons-outlined" onclick="deleteItin(${realIdx})">close</button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `).join('')}
+        ${oldDays.map(day => `
+          <div class="itin-day">
+            <h4><span class="material-icons-outlined" style="font-size:16px;">calendar_today</span> วันที่ ${day}</h4>
+            ${items.filter(i => !i.date && i.day === day).sort((a,b) => (a.time||'').localeCompare(b.time||'')).map(item => {
+              const realIdx = items.indexOf(item);
+              return `
+                <div class="itin-item">
+                  <div class="itin-time">${item.time ? escHtml(item.time) : ''}</div>
+                  <div class="itin-info">
+                    <div class="itin-activity">${escHtml(item.activity)}</div>
+                    ${item.location ? `<div class="itin-loc">📍 ${escHtml(item.location)}</div>` : ''}
+                    ${item.notes ? `<div style="font-size:0.75rem;color:var(--text-light);">${escHtml(item.notes)}</div>` : ''}
+                  </div>
+                  <button class="itin-del material-icons-outlined" onclick="deleteItin(${realIdx})">close</button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `).join('')}
+      `}
+    </div>
+  `;
+}
+
+function showAddItinModal() {
+  const t = currentTrip();
+  const dests = t ? (t.destinations || []) : [];
+  const today = new Date().toISOString().slice(0,10);
+  showModal(`
+    <h3>📅 เพิ่มกิจกรรม</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>วันที่</label>
+        <input id="itinDate" type="date" value="${today}">
+      </div>
+      <div class="form-group">
+        <label>เวลา</label>
+        <input id="itinTime" type="time" value="09:00">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>กิจกรรม</label>
+      <input id="itinActivity" placeholder="เช่น รับประทานอาหารเช้า" autofocus>
+    </div>
+    <div class="form-group">
+      <label>สถานที่</label>
+      <input id="itinLocation" placeholder="พิมพ์หรือเลือกจากรายการ..." list="destList">
+      <datalist id="destList">
+        ${dests.map(d => `<option value="${escHtml(d.name)}">📍 ${escHtml(d.name)}</option>`).join('')}
+      </datalist>
+      ${dests.length > 0 ? `<div style="font-size:0.75rem;color:var(--text-light);margin-top:4px;">📍 สถานที่ในทริป: ${dests.map(d => escHtml(d.name)).join(', ')}</div>` : ''}
+    </div>
+    <div class="form-group">
+      <label>โน้ต (ไม่บังคับ)</label>
+      <input id="itinNotes" placeholder="">
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="addItin()">เพิ่ม</button>
+    </div>
+  `);
+}
+window.showAddItinModal = showAddItinModal;
+
+function addItin() {
+  const t = currentTrip(); if (!t) return;
+  const date = document.getElementById('itinDate').value;
+  const time = document.getElementById('itinTime').value;
+  const activity = document.getElementById('itinActivity').value.trim();
+  if (!activity) { showToast('กรุณาใส่กิจกรรม'); return; }
+  const location = document.getElementById('itinLocation').value.trim();
+  const notes = document.getElementById('itinNotes').value.trim();
+  (t.itinerary || (t.itinerary = [])).push({ id: genId(), date, time, activity, location, notes });
+  saveData(); closeModal(); renderTabContent(t);
+}
+window.addItin = addItin;
+
+function deleteItin(idx) {
+  if (!confirm('ลบกิจกรรมนี้?')) return;
+  const t = currentTrip(); if (!t) return;
+  (t.itinerary || []).splice(idx, 1);
+  saveData(); renderTabContent(t);
+}
+window.deleteItin = deleteItin;
+
+// ═══════════════════════════════════════════════
+//  NOTES
+// ═══════════════════════════════════════════════
+function renderNotes(t) {
+  const notes = Array.isArray(t.notes) ? t.notes : (t.notes ? [{ id: 'old', text: t.notes, createdAt: t.createdAt || Date.now() }] : []);
+  const sorted = [...notes].sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  return `
+    <div class="card">
+      <div class="card-header">
+        <h3>📝 โน้ตทริป</h3>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <textarea id="noteInput" placeholder="เขียนอะไรสักหน่อย..." style="flex:1;padding:10px 14px;border:1px solid var(--line);border-radius:10px;font-size:0.85rem;resize:vertical;min-height:60px;font-family:var(--font);"></textarea>
+        <button class="btn btn-primary" onclick="addNote()" style="align-self:flex-end;">📌 ปักโน้ต</button>
+      </div>
+      ${sorted.length === 0 ? '<div class="empty-state-text"><span class="icon">📝</span>ยังไม่มีโน้ต<br>เริ่มเขียนกันเลย!</div>' :
+        sorted.map(n => {
+          const d = n.createdAt ? new Date(n.createdAt) : null;
+          const dateStr = d ? `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}` : '';
+          return `
+            <div class="note-card">
+              <button class="note-del material-icons-outlined" onclick="deleteNote('${n.id}')">close</button>
+              <div class="note-text">${escHtml(n.text)}</div>
+              <div class="note-meta">
+                <span class="material-icons-outlined" style="font-size:14px;">schedule</span>
+                ${dateStr}
+              </div>
+            </div>
+          `;
+        }).join('')}
+    </div>
+  `;
+}
+
+function addNote() {
+  const t = currentTrip(); if (!t) return;
+  const text = document.getElementById('noteInput').value.trim();
+  if (!text) { showToast('พิมพ์ข้อความก่อน'); return; }
+  const notes = Array.isArray(t.notes) ? t.notes : [];
+  notes.push({ id: genId(), text, createdAt: Date.now() });
+  t.notes = notes;
+  saveData(); renderTabContent(t);
+}
+window.addNote = addNote;
+
+function deleteNote(id) {
+  if (!confirm('ลบโน้ตนี้?')) return;
+  const t = currentTrip(); if (!t) return;
+  const notes = Array.isArray(t.notes) ? t.notes : [];
+  t.notes = notes.filter(n => n.id !== id);
+  saveData(); renderTabContent(t);
+}
+window.deleteNote = deleteNote;
+
+// ═══════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════
+function showModal(html) {
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+window.showModal = showModal;
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+window.closeModal = closeModal;
+document.getElementById('modalOverlay').onclick = function(e) {
+  if (e.target === this) closeModal();
+};
+
+
+// Install PWA prompt
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _installPrompt = e;
+});
+
+function installApp() {
+  if (!_installPrompt) return;
+  _installPrompt.prompt();
+  _installPrompt.userChoice.then(() => { _installPrompt = null; });
+}
+window.installApp = installApp;
+
+(async function init() {
+  try {
+    await waitSupabase();
+    await loadData();
+    const saved = getSavedProfile();
+    if (saved) {
+      _currentProfile = saved;
+      updateUserBadge();
+      filterMyTrips();
+    } else {
+      data.trips = [];
+      showAuth();
+    }
+    renderSidebar();
+    renderTrip();
+  } catch (e) {
+    document.body.innerHTML = `<div style="padding:40px;font-family:sans-serif;"><h2>เกิดข้อผิดพลาด</h2><pre style="background:#f5f5f5;padding:16px;border-radius:8px;margin-top:12px;overflow:auto;">${escHtml(e.stack || e.message || e)}</pre></div>`;
+  }
+})();
+
+// Register Service Worker (skip on file://)
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+// Re-init map on tab switch
+const origRenderTab = renderTabContent;
+renderTabContent = function(t) {
+  origRenderTab(t);
+  if (currentTab === 'destinations' && t) {
+    setTimeout(() => initMap(t), 100);
+  }
+};
+</script>
+</body>
+</html>

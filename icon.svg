@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F8C8DC"/>
+      <stop offset="100%" stop-color="#D8C8F0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" fill="url(#g)"/>
+  <g fill="#fff" transform="translate(256,256)">
+    <circle r="140" fill="none" stroke="#fff" stroke-width="10" opacity="0.5"/>
+    <text font-family="sans-serif" font-size="200" text-anchor="middle" dominant-baseline="central">✈</text>
+  </g>
+</svg>
