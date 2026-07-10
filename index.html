@@ -1263,6 +1263,10 @@
     </div>
     <div class="topnav-actions">
       <div class="user-badge" id="userBadge" style="display:none;"></div>
+      <button class="btn btn-ghost btn-sm" id="adminBtn" style="display:none;" onclick="showAdmin()">
+        <span class="material-icons-outlined" style="font-size:16px;">admin_panel_settings</span>
+        จัดการระบบ
+      </button>
       <button class="hero-btn" onclick="showNewTripModal()">
         <span class="material-icons-outlined">add_circle</span>
         สร้างทริปใหม่
@@ -1314,6 +1318,17 @@
   </div>
 </div>
 
+  <!-- ══ ADMIN PAGE ══ -->
+  <div class="homepage" id="adminPage" style="display:none;">
+    <div class="trips-section">
+      <div class="trips-section-header">
+        <h3>⚙️ จัดการระบบ <span id="adminStats"></span></h3>
+      </div>
+      <div id="adminContent"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ─── Modals ─── -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal" id="modalContent"></div>
@@ -1344,12 +1359,26 @@ let _session = null;
 let _authMode = 'login';
 let _sharedCache = []; // [{tripId, email}]
 let _currentProfile = null;
+let _isAdmin = false;
 let _allTrips = []; // raw trips from Supabase before filtering
 const PROFILE_KEY = 'travelBuddyProfile';
-const ADMIN_EMAILS = ['ronnachai.wijit@gmail.com'];
+const ADMIN_PHONES = ['0623980640'];
 
-function isAdmin() {
-  return _session && ADMIN_EMAILS.includes(_session.user?.email);
+function isAdmin() { return _isAdmin; }
+
+async function checkAdmin() {
+  _isAdmin = false;
+  if (!_supabase || !_currentProfile) return;
+  try {
+    const { data } = await _supabase.from('admins').select('email');
+    if (data) {
+      _isAdmin = data.some(a =>
+        a.email === _currentProfile.phone ||
+        a.email === _currentProfile.name
+      );
+    }
+    if (!_isAdmin && ADMIN_PHONES.includes(_currentProfile.phone)) _isAdmin = true;
+  } catch(e) { _isAdmin = ADMIN_PHONES.includes(_currentProfile?.phone || ''); }
 }
 
 async function waitSupabase() {
@@ -1389,6 +1418,7 @@ async function registerProfile(phone, name, bankName, bankAccount, avatar, color
   await saveProfile(profile);
   _currentProfile = profile;
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  await checkAdmin();
   filterMyTrips();
   hideAuth();
   updateUserBadge();
@@ -1400,6 +1430,7 @@ async function loginProfile(phone) {
   _currentProfile = await findProfile(phone);
   if (_currentProfile) {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(_currentProfile));
+    await checkAdmin();
     filterMyTrips();
     hideAuth();
     updateUserBadge();
@@ -1414,7 +1445,10 @@ function getSavedProfile() {
 
 function logoutProfile() {
   _currentProfile = null;
+  _isAdmin = false;
   localStorage.removeItem(PROFILE_KEY);
+  const adminPage = document.getElementById('adminPage');
+  if (adminPage) adminPage.style.display = 'none';
   filterMyTrips();
   renderSidebar();
   renderTrip();
@@ -1434,6 +1468,8 @@ function updateUserBadge() {
   } else {
     el.style.display = 'none';
   }
+  const adminBtn = document.getElementById('adminBtn');
+  if (adminBtn) adminBtn.style.display = _isAdmin ? '' : 'none';
 }
 
 // ══ AUTH UI ══
@@ -1866,7 +1902,9 @@ function goHome() {
   currentTripId = null;
   const homePage = document.getElementById('homePage');
   const tripDetailPage = document.getElementById('tripDetailPage');
+  const adminPage = document.getElementById('adminPage');
   if (homePage) homePage.classList.remove('hidden');
+  if (adminPage) adminPage.style.display = 'none';
   if (tripDetailPage) {
     tripDetailPage.classList.remove('active');
     tripDetailPage.style.display = '';
@@ -1876,6 +1914,91 @@ function goHome() {
   renderTrip();
 }
 window.goHome = goHome;
+
+function showAdmin() {
+  currentTripId = null;
+  document.getElementById('homePage').classList.add('hidden');
+  const tdp = document.getElementById('tripDetailPage');
+  if (tdp) { tdp.classList.remove('active'); tdp.style.display = ''; }
+  document.getElementById('adminPage').style.display = '';
+  document.getElementById('sidebarOverlay')?.classList.remove('open');
+  document.getElementById('sidebar')?.classList.remove('open');
+  renderAdmin();
+  renderSidebar();
+}
+window.showAdmin = showAdmin;
+
+async function renderAdmin() {
+  const el = document.getElementById('adminContent');
+  const stats = document.getElementById('adminStats');
+  if (!el) return;
+  stats.textContent = `(${_allTrips.length} ทริป)`;
+  let profiles = [];
+  if (_supabase) {
+    try {
+      const { data } = await _supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      if (data) profiles = data;
+    } catch(e) {}
+  }
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>👥 ผู้ใช้ทั้งหมด (${profiles.length} คน)</h3></div>
+      ${profiles.length === 0 ? '<div class="empty-state-text"><span class="icon">👤</span>ไม่มีข้อมูลผู้ใช้</div>' :
+        `<div style="display:grid;gap:8px;">${profiles.map(p => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;">
+            <span class="member-avatar" style="background:${p.color || '#eee'};">${p.avatar || '👤'}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:500;">${escHtml(p.name)}</div>
+              <div style="font-size:0.75rem;color:var(--text-light);">${p.phone}${p.bank_name ? ' · '+escHtml(p.bank_name) : ''}</div>
+            </div>
+            <button class="btn btn-sm btn-ghost" style="color:#e74c3c;font-size:14px;padding:4px 8px;" onclick="adminDeleteProfile('${p.phone}')"><span class="material-icons-outlined" style="font-size:16px;">delete</span></button>
+          </div>
+        `).join('')}</div>`}
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>🗺️ ทริปทั้งหมด (${_allTrips.length} ทริป)</h3></div>
+      ${_allTrips.length === 0 ? '<div class="empty-state-text"><span class="icon">🧭</span>ไม่มีทริป</div>' :
+        `<div style="display:grid;gap:8px;">${_allTrips.map(t => {
+          const mc = (t.members || []).length;
+          const ec = (t.expenses || []).length;
+          return `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;">
+            <span style="font-size:24px;">${t.icon === 'flight' ? '✈️' : t.icon === 'beach_access' ? '🏖️' : t.icon === 'terrain' ? '🏔️' : t.icon === 'location_city' ? '🏙️' : t.icon === 'restaurant' ? '🍽️' : '🏕️'}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:500;">${escHtml(t.name)}</div>
+              <div style="font-size:0.75rem;color:var(--text-light);">${mc} คน · ${ec} รายการ${t.ownerPhone ? ' · '+escHtml(t.ownerPhone) : ''}</div>
+            </div>
+            <button class="btn btn-sm btn-ghost" onclick="selectTrip('${t.id}')" style="padding:4px 10px;">เปิด</button>
+            <button class="btn btn-sm btn-ghost" style="color:#e74c3c;font-size:14px;padding:4px 8px;" onclick="adminDeleteTrip('${t.id}')"><span class="material-icons-outlined" style="font-size:16px;">delete</span></button>
+          </div>`;}).join('')}</div>`}
+    </div>
+  `;
+}
+window.renderAdmin = renderAdmin;
+
+async function adminDeleteProfile(phone) {
+  if (!confirm('ลบผู้ใช้ '+phone+'? ข้อมูลทั้งหมดจะหาย')) return;
+  if (!_supabase) return;
+  try {
+    await _supabase.from('profiles').delete().eq('phone', phone);
+    showToast('ลบผู้ใช้เรียบร้อย');
+    renderAdmin();
+  } catch(e) { showToast('ลบไม่สำเร็จ'); }
+}
+window.adminDeleteProfile = adminDeleteProfile;
+
+async function adminDeleteTrip(id) {
+  if (!confirm('ลบทริปนี้?')) return;
+  _allTrips = _allTrips.filter(t => t.id !== id);
+  data.trips = data.trips.filter(t => t.id !== id);
+  if (_supabase) {
+    try { await _supabase.from('trips').delete().eq('id', id); } catch(e) {}
+  }
+  saveData();
+  renderAdmin();
+  renderSidebar();
+}
+window.adminDeleteTrip = adminDeleteTrip;
 
 function renderTripGrid() {
   const grid = document.getElementById('tripGrid');
@@ -1953,6 +2076,8 @@ function renderTrip() {
   const views = document.getElementById('tripViews');
   const homePage = document.getElementById('homePage');
   const tripDetailPage = document.getElementById('tripDetailPage');
+  const adminPage = document.getElementById('adminPage');
+  if (adminPage) adminPage.style.display = 'none';
 
   if (!t) {
     if (homePage) homePage.classList.remove('hidden');
@@ -3305,6 +3430,7 @@ window.installApp = installApp;
     if (saved) {
       _currentProfile = saved;
       updateUserBadge();
+      await checkAdmin();
       filterMyTrips();
     } else {
       data.trips = [];
